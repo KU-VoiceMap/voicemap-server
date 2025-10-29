@@ -3,7 +3,6 @@ package org.ku.voicemap.exception;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.ku.voicemap.exception.member.MemberNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -66,9 +65,8 @@ public class GlobalExceptionHandler {
       VoiceMapException e) {
     ErrorCode errorCode = e.getErrorCode();
     return switch (errorCode) {
-      case AUTHENTICATION_FAILED-> HttpStatus.UNAUTHORIZED;
-      case MEMBER_EXIST_REGISTER , MEMBER_NOT_FOUND
-          -> HttpStatus.CONFLICT;
+      case AUTHENTICATION_FAILED -> HttpStatus.UNAUTHORIZED;
+      case MEMBER_EXIST_REGISTER, MEMBER_NOT_FOUND -> HttpStatus.CONFLICT;
     };
   }
 

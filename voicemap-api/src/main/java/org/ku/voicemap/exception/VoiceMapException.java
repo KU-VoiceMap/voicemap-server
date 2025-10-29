@@ -15,6 +15,7 @@ public class VoiceMapException extends RuntimeException {
     this.errorCode = errorCode;
     this.details = new HashMap<>();
   }
+
   public VoiceMapException(ErrorCode errorCode, Throwable cause) {
     super(errorCode.getMessage(), cause);
     this.errorCode = errorCode;

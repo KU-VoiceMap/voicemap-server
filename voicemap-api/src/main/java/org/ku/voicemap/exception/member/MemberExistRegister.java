@@ -8,8 +8,8 @@ public class MemberExistRegister extends MemberException {
   public MemberExistRegister(RegisterDto registerDto) {
 
     super(ErrorCode.MEMBER_EXIST_REGISTER);
-    this.addDetail("provider",registerDto.provider());
-    this.addDetail("providerId",registerDto.providerId());
-    this.addDetail("email",registerDto.email());
+    this.addDetail("provider", registerDto.provider());
+    this.addDetail("providerId", registerDto.providerId());
+    this.addDetail("email", registerDto.email());
   }
 }

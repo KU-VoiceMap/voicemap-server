@@ -11,15 +11,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class MemberService implements MemberServiceInter{
+public class MemberService implements MemberServiceInter {
 
   private final MemberRepository memberRepository;
 
   @Override
   @Transactional
   public MemberDto createMember(RegisterDto registerInfo) {
-    Member member=Member.createMember(registerInfo.providerId()
-        , registerInfo.email(), registerInfo.provider());
+    Member member = Member.createMember(registerInfo.providerId(), registerInfo.email(),
+        registerInfo.provider());
     memberRepository.save(member);
     return MemberDto.toDto(member);
   }
@@ -27,15 +27,15 @@ public class MemberService implements MemberServiceInter{
   @Override
   @Transactional(readOnly = true)
   public boolean checkRegister(RegisterDto registerInfo) {
-    return memberRepository.existsByProviderIdAndEmailAndProvider(registerInfo.providerId()
-        , registerInfo.email(), registerInfo.provider());
+    return memberRepository.existsByProviderIdAndEmailAndProvider(registerInfo.providerId(),
+        registerInfo.email(), registerInfo.provider());
   }
 
   @Override
   @Transactional(readOnly = true)
   public MemberDto findMember(RegisterDto registerInfo) {
-    Optional<Member> member =memberRepository.findByProviderIdAndEmailAndProvider(registerInfo.providerId()
-        , registerInfo.email(), registerInfo.provider());
+    Optional<Member> member = memberRepository.findByProviderIdAndEmailAndProvider(
+        registerInfo.providerId(), registerInfo.email(), registerInfo.provider());
     return member.map(MemberDto::toDto).orElse(null);
   }
 }

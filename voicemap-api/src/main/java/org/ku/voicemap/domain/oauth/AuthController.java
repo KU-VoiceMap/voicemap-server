@@ -15,9 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/test/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:63342")//임시 테스트용
 public class AuthController {
   private final AuthService authService;
 

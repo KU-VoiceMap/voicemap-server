@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class AuthService implements AuthServiceInter{
+public class AuthService implements AuthServiceInter {
 
   private final MemberServiceInter memberService;
   private final TokenVerify tokenVerify;
@@ -23,13 +23,13 @@ public class AuthService implements AuthServiceInter{
   @Transactional
   public AuthResponse register(Provider provider, String idToken) {
 
-    RegisterDto registerInfo= convertVerify(provider,idToken);
+    RegisterDto registerInfo = convertToVerify(provider, idToken);
 
-    if(memberService.checkRegister(registerInfo)){
+    if (memberService.checkRegister(registerInfo)) {
       throw new MemberExistRegister(registerInfo);
     }
 
-    MemberDto memberDto=memberService.createMember(registerInfo);
+    MemberDto memberDto = memberService.createMember(registerInfo);
 
     String appAccessToken = "임시임시-" + memberDto.id();//임시로
     return new AuthResponse(appAccessToken);
@@ -38,21 +38,22 @@ public class AuthService implements AuthServiceInter{
   @Transactional(readOnly = true)
   public AuthResponse login(Provider provider, String idToken) {
 
-    RegisterDto registerInfo= convertVerify(provider,idToken);
+    RegisterDto registerInfo = convertToVerify(provider, idToken);
 
-    if(!memberService.checkRegister(registerInfo)){
+    if (!memberService.checkRegister(registerInfo)) {
       throw new MemberNotFoundException(registerInfo);
     }
-    MemberDto memberDto=memberService.findMember(registerInfo);
+    MemberDto memberDto = memberService.findMember(registerInfo);
 
     String appAccessToken = "임시임시-" + memberDto.id();//임시로
     return new AuthResponse(appAccessToken);
   }
 
-  private RegisterDto convertVerify(Provider provider, String idToken){
-    RegisterDto registerInfo=null;
-    if(provider==Provider.GOOGLE){
-      registerInfo= tokenVerify.toGoogle(idToken);
+  //Provider마다 토큰 다르게 검증
+  private RegisterDto convertToVerify(Provider provider, String idToken) {
+    RegisterDto registerInfo = null;
+    if (provider == Provider.GOOGLE) {
+      registerInfo = tokenVerify.toGoogle(idToken);
     }
     return registerInfo;
   }

@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ErrorResponse {
 
-  // TODO: 요구사항에 timestamp, errorcode 없음 의논 필요
   private final String exceptionName;
   private final String message;
   private final Map<String, Object> details;

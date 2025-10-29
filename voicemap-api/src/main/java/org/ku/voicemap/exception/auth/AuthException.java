@@ -5,6 +5,7 @@ import org.ku.voicemap.exception.VoiceMapException;
 
 
 public class AuthException extends VoiceMapException {
+
   public AuthException(ErrorCode errorCode) {
     super(errorCode);
   }

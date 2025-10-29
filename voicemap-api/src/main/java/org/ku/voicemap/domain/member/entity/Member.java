@@ -36,15 +36,15 @@ public class Member {
   private Provider provider;
 
   @Builder
-  private Member(String providerId, String email, Provider provider){
-    this.providerId=providerId;
-    this.email=email;
-    this.provider=provider;
-    this.createdAt=LocalDateTime.now();
+  private Member(String providerId, String email, Provider provider) {
+    this.providerId = providerId;
+    this.email = email;
+    this.provider = provider;
+    this.createdAt = LocalDateTime.now();
   }
 
-  public static Member createMember(String providerId, String email, Provider provider){
-    return  Member.builder()
+  public static Member createMember(String providerId, String email, Provider provider) {
+    return Member.builder()
         .providerId(providerId)
         .email(email)
         .provider(provider)
