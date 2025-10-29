@@ -10,6 +10,7 @@ import java.security.GeneralSecurityException;
 import java.util.Collections;
 import org.ku.voicemap.domain.member.entity.Provider;
 import org.ku.voicemap.domain.oauth.dto.RegisterDto;
+import org.ku.voicemap.exception.auth.AuthFailedException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -28,13 +29,13 @@ public class TokenVerify {
         .build();
   }
 
-  public RegisterDto toGoogle(String idTocken)  {
+  public RegisterDto toGoogle(String idToken)  {
     try {
-      GoogleIdToken googleToken = googleIdTokenVerifier.verify(idTocken);
+      GoogleIdToken googleToken = googleIdTokenVerifier.verify(idToken);
 
       if (!googleToken.getPayload().getAudience().equals(googleClientId)) {
 
-        throw new IllegalArgumentException("토큰의 Client ID가 일치하지 않음.");
+        throw new AuthFailedException(idToken);
       }
       Payload payload = googleToken.getPayload();
       return new RegisterDto(payload.getSubject(), payload.getEmail(), Provider.GOOGLE);

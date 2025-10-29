@@ -7,6 +7,8 @@ import org.ku.voicemap.domain.member.service.MemberServiceInter;
 import org.ku.voicemap.domain.oauth.dto.AuthResponse;
 import org.ku.voicemap.domain.oauth.dto.RegisterDto;
 import org.ku.voicemap.domain.oauth.verify.TokenVerify;
+import org.ku.voicemap.exception.member.MemberExistRegister;
+import org.ku.voicemap.exception.member.MemberNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +26,7 @@ public class AuthService implements AuthServiceInter{
     RegisterDto registerInfo= convertVerify(provider,idToken);
 
     if(memberService.checkRegister(registerInfo)){
-      throw new IllegalArgumentException("이미 가입한 회원입니다");
+      throw new MemberExistRegister(registerInfo);
     }
 
     MemberDto memberDto=memberService.createMember(registerInfo);
@@ -33,13 +35,13 @@ public class AuthService implements AuthServiceInter{
     return new AuthResponse(appAccessToken);
   }
 
-  @Transactional
+  @Transactional(readOnly = true)
   public AuthResponse login(Provider provider, String idToken) {
 
     RegisterDto registerInfo= convertVerify(provider,idToken);
 
     if(!memberService.checkRegister(registerInfo)){
-      throw new IllegalArgumentException("존재하지 않는 회원입니다");
+      throw new MemberNotFoundException(registerInfo);
     }
     MemberDto memberDto=memberService.findMember(registerInfo);
 
