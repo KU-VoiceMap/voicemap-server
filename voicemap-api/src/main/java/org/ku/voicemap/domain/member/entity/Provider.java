@@ -8,13 +8,13 @@ public enum Provider {
 
   public static boolean checkProvider(String name) {
     if (name == null) {
-      return false;
+      return true;
     }
     try {
       Provider.valueOf(name.toUpperCase());
-      return true;
-    } catch (IllegalArgumentException e) {
       return false;
+    } catch (IllegalArgumentException e) {
+      return true;
     }
   }
 }

@@ -30,11 +30,13 @@ public class TokenVerify {
 
   public RegisterDto toGoogle(String idToken) {
     try {
+
       GoogleIdToken googleToken = googleIdTokenVerifier.verify(idToken);
 
       if (!googleToken.getPayload().getAudience().equals(googleClientId)) {
         throw new AuthFailedException(idToken);
       }
+
       Payload payload = googleToken.getPayload();
 
       return new RegisterDto(payload.getSubject(), payload.getEmail(), Provider.GOOGLE);

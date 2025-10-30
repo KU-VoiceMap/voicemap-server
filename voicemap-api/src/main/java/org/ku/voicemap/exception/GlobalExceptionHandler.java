@@ -17,7 +17,6 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleException(Exception e) {
 
-    log.error("예상치 못한 오류 발생: {}", e.getMessage(), e);
     ErrorResponse errorResponse = new ErrorResponse(e);
 
     return ResponseEntity
@@ -28,8 +27,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(VoiceMapException.class)
   public ResponseEntity<ErrorResponse> handleOotdException(VoiceMapException e) {
 
-    log.error("커스텀 예외 발생: message={}", e.getMessage(), e);
     HttpStatus status = determineHttpStatus(e);
+
     ErrorResponse response = new ErrorResponse(e);
 
     return ResponseEntity
@@ -41,9 +40,8 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleValidationExceptions(
       MethodArgumentNotValidException e) {
 
-    log.error("요청 유효성 검사 실패: {}", e.getMessage());
-
     Map<String, Object> validationErrors = new HashMap<>();
+
     e.getBindingResult().getAllErrors().forEach(error -> {
       String fieldName = ((FieldError) error).getField();
       String errorMessage = error.getDefaultMessage();
@@ -63,7 +61,9 @@ public class GlobalExceptionHandler {
 
   private HttpStatus determineHttpStatus(
       VoiceMapException e) {
+
     ErrorCode errorCode = e.getErrorCode();
+
     return switch (errorCode) {
       case AUTHENTICATION_FAILED -> HttpStatus.UNAUTHORIZED;
       case MEMBER_EXIST_REGISTER, MEMBER_NOT_FOUND -> HttpStatus.CONFLICT;

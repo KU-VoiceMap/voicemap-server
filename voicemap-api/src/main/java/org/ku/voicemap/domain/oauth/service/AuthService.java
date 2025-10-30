@@ -23,38 +23,36 @@ public class AuthService implements AuthServiceInter {
   @Transactional
   public AuthResponse register(Provider provider, String idToken) {
 
-    RegisterDto registerInfo = convertToVerify(provider, idToken);
-
-    if (memberService.checkRegister(registerInfo)) {
-      throw new MemberExistRegister(registerInfo);
-    }
+    RegisterDto registerInfo = verifyIdToken(provider, idToken);
 
     MemberDto memberDto = memberService.createMember(registerInfo);
 
     String appAccessToken = "임시임시-" + memberDto.id();//임시로
+
     return new AuthResponse(appAccessToken);
   }
 
   @Transactional(readOnly = true)
   public AuthResponse login(Provider provider, String idToken) {
 
-    RegisterDto registerInfo = convertToVerify(provider, idToken);
+    RegisterDto registerInfo = verifyIdToken(provider, idToken);
 
-    if (!memberService.checkRegister(registerInfo)) {
-      throw new MemberNotFoundException(registerInfo);
-    }
     MemberDto memberDto = memberService.findMember(registerInfo);
 
     String appAccessToken = "임시임시-" + memberDto.id();//임시로
+
     return new AuthResponse(appAccessToken);
   }
 
   //Provider마다 토큰 다르게 검증
-  private RegisterDto convertToVerify(Provider provider, String idToken) {
+  private RegisterDto verifyIdToken(Provider provider, String idToken) {
+
     RegisterDto registerInfo = null;
+
     if (provider == Provider.GOOGLE) {
       registerInfo = tokenVerify.toGoogle(idToken);
     }
+
     return registerInfo;
   }
 }

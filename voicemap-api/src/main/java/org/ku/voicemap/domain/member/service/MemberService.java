@@ -6,6 +6,9 @@ import org.ku.voicemap.domain.member.entity.Member;
 import org.ku.voicemap.domain.member.entity.MemberDto;
 import org.ku.voicemap.domain.member.repository.MemberRepository;
 import org.ku.voicemap.domain.oauth.dto.RegisterDto;
+import org.ku.voicemap.exception.member.MemberExistRegister;
+import org.ku.voicemap.exception.member.MemberNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,24 +21,32 @@ public class MemberService implements MemberServiceInter {
   @Override
   @Transactional
   public MemberDto createMember(RegisterDto registerInfo) {
+
     Member member = Member.createMember(registerInfo.providerId(), registerInfo.email(),
         registerInfo.provider());
-    memberRepository.save(member);
+
+    try {
+
+      memberRepository.saveAndFlush(member);
+
+    } catch (DataIntegrityViolationException e) {
+
+      throw new MemberExistRegister(registerInfo);
+
+    }
+
     return MemberDto.toDto(member);
   }
 
-  @Override
-  @Transactional(readOnly = true)
-  public boolean checkRegister(RegisterDto registerInfo) {
-    return memberRepository.existsByProviderIdAndEmailAndProvider(registerInfo.providerId(),
-        registerInfo.email(), registerInfo.provider());
-  }
 
   @Override
   @Transactional(readOnly = true)
   public MemberDto findMember(RegisterDto registerInfo) {
+
     Optional<Member> member = memberRepository.findByProviderIdAndEmailAndProvider(
         registerInfo.providerId(), registerInfo.email(), registerInfo.provider());
-    return member.map(MemberDto::toDto).orElse(null);
+
+    return member.map(MemberDto::toDto)
+        .orElseThrow(() -> new MemberNotFoundException(registerInfo));
   }
 }

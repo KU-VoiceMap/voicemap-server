@@ -25,12 +25,13 @@ public class AuthController {
       @PathVariable String provider,
       @RequestBody TokenRequest request) {
 
-
-    if(!Provider.checkProvider(provider)){
+    if(Provider.checkProvider(provider)){
       throw new RuntimeException("잘못된 provider");
     }
     Provider providerEnum = Provider.valueOf(provider.toUpperCase());
+
     AuthResponse response = authService.register(providerEnum, request.idToken());
+
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
 
@@ -40,12 +41,14 @@ public class AuthController {
       @PathVariable String provider,
       @RequestBody TokenRequest request){
 
-    if(!Provider.checkProvider(provider)){
+    if(Provider.checkProvider(provider)){
       throw new RuntimeException("잘못된 provider");
     }
+
     Provider providerEnum = Provider.valueOf(provider.toUpperCase());
 
     AuthResponse response = authService.login(providerEnum, request.idToken());
+
     return ResponseEntity.ok(response);
   }
 

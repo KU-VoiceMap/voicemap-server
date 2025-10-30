@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -17,7 +18,12 @@ import lombok.NoArgsConstructor;
 
 
 @Entity
-@Table(name = "member")
+@Table(name = "member", uniqueConstraints = {
+    @UniqueConstraint(
+        name = "UK_member_provider",
+        columnNames = {"provider_id", "email", "provider"}
+    )
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member {

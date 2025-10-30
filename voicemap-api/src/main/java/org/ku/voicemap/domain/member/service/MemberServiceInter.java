@@ -7,7 +7,5 @@ public interface MemberServiceInter {
 
   MemberDto createMember(RegisterDto registerInfo);
 
-  boolean checkRegister(RegisterDto registerInfo);
-
   MemberDto findMember(RegisterDto registerInfo);
 }
