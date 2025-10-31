@@ -1,6 +1,7 @@
 package org.ku.voicemap.domain.member.entity;
 
 import java.time.LocalDateTime;
+import org.ku.voicemap.domain.member.model.Provider;
 
 public record MemberDto(Long id, String providerId, String email
     , LocalDateTime createdAt, Provider provider) {

@@ -1,4 +1,4 @@
-package org.ku.voicemap.domain.member.entity;
+package org.ku.voicemap.domain.member.model;
 
 import lombok.Getter;
 

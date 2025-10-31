@@ -8,7 +8,7 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
-import org.ku.voicemap.domain.member.entity.Provider;
+import org.ku.voicemap.domain.member.model.Provider;
 import org.ku.voicemap.domain.oauth.dto.RegisterDto;
 import org.ku.voicemap.exception.auth.AuthFailedException;
 import org.springframework.beans.factory.annotation.Value;

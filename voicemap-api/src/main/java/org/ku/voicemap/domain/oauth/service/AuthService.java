@@ -2,7 +2,7 @@ package org.ku.voicemap.domain.oauth.service;
 
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.member.entity.MemberDto;
-import org.ku.voicemap.domain.member.entity.Provider;
+import org.ku.voicemap.domain.member.model.Provider;
 import org.ku.voicemap.domain.member.service.MemberServiceInter;
 import org.ku.voicemap.domain.oauth.dto.AuthResponse;
 import org.ku.voicemap.domain.oauth.dto.RegisterDto;

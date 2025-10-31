@@ -1,10 +1,10 @@
 package org.ku.voicemap.domain.oauth;
 
 import lombok.RequiredArgsConstructor;
-import org.ku.voicemap.domain.member.entity.Provider;
+import org.ku.voicemap.domain.member.model.Provider;
 import org.ku.voicemap.domain.oauth.dto.AuthResponse;
 import org.ku.voicemap.domain.oauth.dto.TokenRequest;
-import org.ku.voicemap.domain.oauth.service.AuthService;
+import org.ku.voicemap.domain.oauth.service.AuthServiceInter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    private final AuthService authService;
+    private final AuthServiceInter authService;
 
     @PostMapping("/{provider}/register")
     public ResponseEntity<AuthResponse> register(

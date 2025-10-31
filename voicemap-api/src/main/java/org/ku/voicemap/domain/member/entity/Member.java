@@ -15,6 +15,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.ku.voicemap.domain.member.model.Provider;
 
 
 @Entity
@@ -31,7 +32,7 @@ public class Member {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "provider_id", nullable = false, unique = true, length = 50)
+    @Column(name = "provider_id", nullable = false, length = 50)
     private String providerId;
     @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
