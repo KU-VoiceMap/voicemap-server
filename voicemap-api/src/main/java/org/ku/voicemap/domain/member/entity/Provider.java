@@ -4,17 +4,17 @@ import lombok.Getter;
 
 @Getter
 public enum Provider {
-  GOOGLE;
+    GOOGLE;
 
-  public static boolean checkProvider(String name) {
-    if (name == null) {
-      return true;
+    public static boolean checkProvider(String name) {
+        if (name == null) {
+            return true;
+        }
+        try {
+            Provider.valueOf(name.toUpperCase());
+            return false;
+        } catch (IllegalArgumentException e) {
+            return true;
+        }
     }
-    try {
-      Provider.valueOf(name.toUpperCase());
-      return false;
-    } catch (IllegalArgumentException e) {
-      return true;
-    }
-  }
 }

@@ -16,37 +16,37 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MemberService implements MemberServiceInter {
 
-  private final MemberRepository memberRepository;
+    private final MemberRepository memberRepository;
 
-  @Override
-  @Transactional
-  public MemberDto createMember(RegisterDto registerInfo) {
+    @Override
+    @Transactional
+    public MemberDto createMember(RegisterDto registerInfo) {
 
-    Member member = Member.createMember(registerInfo.providerId(), registerInfo.email(),
-        registerInfo.provider());
+        Member member = Member.createMember(registerInfo.providerId(), registerInfo.email(),
+            registerInfo.provider());
 
-    try {
+        try {
 
-      memberRepository.saveAndFlush(member);
+            memberRepository.saveAndFlush(member);
 
-    } catch (DataIntegrityViolationException e) {
+        } catch (DataIntegrityViolationException e) {
 
-      throw new MemberExistRegister(registerInfo);
+            throw new MemberExistRegister(registerInfo);
 
+        }
+
+        return MemberDto.toDto(member);
     }
 
-    return MemberDto.toDto(member);
-  }
 
+    @Override
+    @Transactional(readOnly = true)
+    public MemberDto findMember(RegisterDto registerInfo) {
 
-  @Override
-  @Transactional(readOnly = true)
-  public MemberDto findMember(RegisterDto registerInfo) {
+        Optional<Member> member = memberRepository.findByProviderIdAndEmailAndProvider(
+            registerInfo.providerId(), registerInfo.email(), registerInfo.provider());
 
-    Optional<Member> member = memberRepository.findByProviderIdAndEmailAndProvider(
-        registerInfo.providerId(), registerInfo.email(), registerInfo.provider());
-
-    return member.map(MemberDto::toDto)
-        .orElseThrow(() -> new MemberNotFoundException(registerInfo));
-  }
+        return member.map(MemberDto::toDto)
+            .orElseThrow(() -> new MemberNotFoundException(registerInfo));
+    }
 }

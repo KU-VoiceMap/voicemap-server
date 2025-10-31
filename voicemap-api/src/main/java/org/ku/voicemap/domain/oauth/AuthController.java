@@ -7,7 +7,6 @@ import org.ku.voicemap.domain.oauth.dto.TokenRequest;
 import org.ku.voicemap.domain.oauth.service.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,38 +17,38 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
-  private final AuthService authService;
+    private final AuthService authService;
 
-  @PostMapping("/{provider}/register")
-  public ResponseEntity<AuthResponse> register(
-      @PathVariable String provider,
-      @RequestBody TokenRequest request) {
+    @PostMapping("/{provider}/register")
+    public ResponseEntity<AuthResponse> register(
+        @PathVariable String provider,
+        @RequestBody TokenRequest request) {
 
-    if(Provider.checkProvider(provider)){
-      throw new RuntimeException("잘못된 provider");
-    }
-    Provider providerEnum = Provider.valueOf(provider.toUpperCase());
+        if (Provider.checkProvider(provider)) {
+            throw new RuntimeException("잘못된 provider");
+        }
+        Provider providerEnum = Provider.valueOf(provider.toUpperCase());
 
-    AuthResponse response = authService.register(providerEnum, request.idToken());
+        AuthResponse response = authService.register(providerEnum, request.idToken());
 
-    return ResponseEntity.status(HttpStatus.CREATED).body(response);
-  }
-
-
-  @PostMapping("/{provider}/login")
-  public ResponseEntity<AuthResponse> login(
-      @PathVariable String provider,
-      @RequestBody TokenRequest request){
-
-    if(Provider.checkProvider(provider)){
-      throw new RuntimeException("잘못된 provider");
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    Provider providerEnum = Provider.valueOf(provider.toUpperCase());
 
-    AuthResponse response = authService.login(providerEnum, request.idToken());
+    @PostMapping("/{provider}/login")
+    public ResponseEntity<AuthResponse> login(
+        @PathVariable String provider,
+        @RequestBody TokenRequest request) {
 
-    return ResponseEntity.ok(response);
-  }
+        if (Provider.checkProvider(provider)) {
+            throw new RuntimeException("잘못된 provider");
+        }
+
+        Provider providerEnum = Provider.valueOf(provider.toUpperCase());
+
+        AuthResponse response = authService.login(providerEnum, request.idToken());
+
+        return ResponseEntity.ok(response);
+    }
 
 }

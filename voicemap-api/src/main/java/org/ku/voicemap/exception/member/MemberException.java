@@ -5,7 +5,7 @@ import org.ku.voicemap.exception.VoiceMapException;
 
 public class MemberException extends VoiceMapException {
 
-  public MemberException(ErrorCode errorCode) {
-    super(errorCode);
-  }
+    public MemberException(ErrorCode errorCode) {
+        super(errorCode);
+    }
 }

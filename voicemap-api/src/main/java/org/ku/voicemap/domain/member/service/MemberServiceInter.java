@@ -5,7 +5,7 @@ import org.ku.voicemap.domain.oauth.dto.RegisterDto;
 
 public interface MemberServiceInter {
 
-  MemberDto createMember(RegisterDto registerInfo);
+    MemberDto createMember(RegisterDto registerInfo);
 
-  MemberDto findMember(RegisterDto registerInfo);
+    MemberDto findMember(RegisterDto registerInfo);
 }

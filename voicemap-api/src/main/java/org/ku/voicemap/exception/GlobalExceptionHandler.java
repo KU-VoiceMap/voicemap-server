@@ -14,61 +14,61 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-  @ExceptionHandler(Exception.class)
-  public ResponseEntity<ErrorResponse> handleException(Exception e) {
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleException(Exception e) {
 
-    ErrorResponse errorResponse = new ErrorResponse(e);
+        ErrorResponse errorResponse = new ErrorResponse(e);
 
-    return ResponseEntity
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .body(errorResponse);
-  }
+        return ResponseEntity
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(errorResponse);
+    }
 
-  @ExceptionHandler(VoiceMapException.class)
-  public ResponseEntity<ErrorResponse> handleOotdException(VoiceMapException e) {
+    @ExceptionHandler(VoiceMapException.class)
+    public ResponseEntity<ErrorResponse> handleOotdException(VoiceMapException e) {
 
-    HttpStatus status = determineHttpStatus(e);
+        HttpStatus status = determineHttpStatus(e);
 
-    ErrorResponse response = new ErrorResponse(e);
+        ErrorResponse response = new ErrorResponse(e);
 
-    return ResponseEntity
-        .status(status)
-        .body(response);
-  }
+        return ResponseEntity
+            .status(status)
+            .body(response);
+    }
 
-  @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<ErrorResponse> handleValidationExceptions(
-      MethodArgumentNotValidException e) {
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationExceptions(
+        MethodArgumentNotValidException e) {
 
-    Map<String, Object> validationErrors = new HashMap<>();
+        Map<String, Object> validationErrors = new HashMap<>();
 
-    e.getBindingResult().getAllErrors().forEach(error -> {
-      String fieldName = ((FieldError) error).getField();
-      String errorMessage = error.getDefaultMessage();
-      validationErrors.put(fieldName, errorMessage);
-    });
+        e.getBindingResult().getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            validationErrors.put(fieldName, errorMessage);
+        });
 
-    ErrorResponse response = new ErrorResponse(
-        "VALIDATION_ERROR",
-        "요청 데이터 유효성 검사에 실패했습니다.",
-        validationErrors
-    );
+        ErrorResponse response = new ErrorResponse(
+            "VALIDATION_ERROR",
+            "요청 데이터 유효성 검사에 실패했습니다.",
+            validationErrors
+        );
 
-    return ResponseEntity
-        .status(HttpStatus.BAD_REQUEST)
-        .body(response);
-  }
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(response);
+    }
 
-  private HttpStatus determineHttpStatus(
-      VoiceMapException e) {
+    private HttpStatus determineHttpStatus(
+        VoiceMapException e) {
 
-    ErrorCode errorCode = e.getErrorCode();
+        ErrorCode errorCode = e.getErrorCode();
 
-    return switch (errorCode) {
-      case AUTHENTICATION_FAILED -> HttpStatus.UNAUTHORIZED;
-      case MEMBER_EXIST_REGISTER, MEMBER_NOT_FOUND -> HttpStatus.CONFLICT;
-    };
-  }
+        return switch (errorCode) {
+            case AUTHENTICATION_FAILED -> HttpStatus.UNAUTHORIZED;
+            case MEMBER_EXIST_REGISTER, MEMBER_NOT_FOUND -> HttpStatus.CONFLICT;
+        };
+    }
 
 
 }

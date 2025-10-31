@@ -5,7 +5,7 @@ import org.ku.voicemap.domain.oauth.dto.AuthResponse;
 
 public interface AuthServiceInter {
 
-  AuthResponse register(Provider provider, String idToken);
+    AuthResponse register(Provider provider, String idToken);
 
-  AuthResponse login(Provider provider, String idToken);
+    AuthResponse login(Provider provider, String idToken);
 }
