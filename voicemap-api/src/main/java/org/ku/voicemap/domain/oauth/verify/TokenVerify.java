@@ -8,6 +8,7 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
+import org.ku.voicemap.config.GoogleProperties;
 import org.ku.voicemap.domain.member.model.Provider;
 import org.ku.voicemap.domain.oauth.dto.RegisterDto;
 import org.ku.voicemap.exception.auth.AuthFailedException;
@@ -20,11 +21,13 @@ public class TokenVerify {
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final String googleClientId;
 
-    public TokenVerify(
-        @Value("${spring.security.oauth2.client.registration.google.client-id}") String googleClientId) {
-        this.googleClientId = googleClientId;
+    public TokenVerify(GoogleProperties googleProp) {
+
+        this.googleClientId = googleProp.clientId();
+
         this.googleIdTokenVerifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(),
-            JacksonFactory.getDefaultInstance()).setAudience(Collections.singletonList(googleClientId))
+            JacksonFactory.getDefaultInstance())
+            .setAudience(Collections.singletonList(googleProp.clientId()))
             .build();
     }
 

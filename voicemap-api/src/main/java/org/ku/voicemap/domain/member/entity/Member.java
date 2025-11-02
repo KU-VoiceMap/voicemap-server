@@ -22,7 +22,7 @@ import org.ku.voicemap.domain.member.model.Provider;
 @Table(name = "member", uniqueConstraints = {
     @UniqueConstraint(
         name = "UK_member_provider",
-        columnNames = {"provider_id", "email", "provider"}
+        columnNames = {"provider_id", "provider"}
     )
 })
 @Getter

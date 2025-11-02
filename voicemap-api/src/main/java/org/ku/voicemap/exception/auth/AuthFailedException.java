@@ -6,6 +6,5 @@ public class AuthFailedException extends AuthException {
 
     public AuthFailedException(String idToken) {
         super(ErrorCode.AUTHENTICATION_FAILED);
-        this.addDetail("idToken", idToken);
     }
 }

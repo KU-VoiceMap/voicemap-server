@@ -4,7 +4,8 @@ import lombok.Getter;
 
 @Getter
 public enum Provider {
-    GOOGLE;
+    GOOGLE,
+    ;
 
     public static boolean checkProvider(String name) {
         if (name == null) {

@@ -13,12 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class AuthService implements AuthServiceInter {
+public class AuthService {
 
     private final MemberServiceInter memberService;
     private final TokenVerify tokenVerify;
 
-    @Transactional
     public AuthResponse register(Provider provider, String idToken) {
 
         RegisterDto registerInfo = verifyIdToken(provider, idToken);
@@ -41,6 +40,7 @@ public class AuthService implements AuthServiceInter {
 
         return new AuthResponse(appAccessToken);
     }
+
 
     //Provider마다 토큰 다르게 검증
     private RegisterDto verifyIdToken(Provider provider, String idToken) {

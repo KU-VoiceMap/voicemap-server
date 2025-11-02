@@ -36,31 +36,8 @@ public class GlobalExceptionHandler {
             .body(response);
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationExceptions(
-        MethodArgumentNotValidException e) {
 
-        Map<String, Object> validationErrors = new HashMap<>();
-
-        e.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            validationErrors.put(fieldName, errorMessage);
-        });
-
-        ErrorResponse response = new ErrorResponse(
-            "VALIDATION_ERROR",
-            "요청 데이터 유효성 검사에 실패했습니다.",
-            validationErrors
-        );
-
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(response);
-    }
-
-    private HttpStatus determineHttpStatus(
-        VoiceMapException e) {
+    private HttpStatus determineHttpStatus(VoiceMapException e) {
 
         ErrorCode errorCode = e.getErrorCode();
 

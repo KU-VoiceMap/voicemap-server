@@ -9,6 +9,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MemberRepository extends JpaRepository<Member, Long> {
 
-    Optional<Member> findByProviderIdAndEmailAndProvider(String providerId, String email,
+    Optional<Member> findByProviderIdAndProvider(String providerId,
                                                          Provider provider);
 }

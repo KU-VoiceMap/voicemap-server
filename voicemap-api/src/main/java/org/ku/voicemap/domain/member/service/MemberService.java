@@ -43,8 +43,8 @@ public class MemberService implements MemberServiceInter {
     @Transactional(readOnly = true)
     public MemberDto findMember(RegisterDto registerInfo) {
 
-        Optional<Member> member = memberRepository.findByProviderIdAndEmailAndProvider(
-            registerInfo.providerId(), registerInfo.email(), registerInfo.provider());
+        Optional<Member> member = memberRepository.findByProviderIdAndProvider(
+            registerInfo.providerId(), registerInfo.provider());
 
         return member.map(MemberDto::toDto)
             .orElseThrow(() -> new MemberNotFoundException(registerInfo));
