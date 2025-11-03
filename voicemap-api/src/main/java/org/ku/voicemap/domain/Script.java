@@ -1,0 +1,58 @@
+package org.ku.voicemap.domain;
+
+import io.micrometer.common.util.StringUtils;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Table(
+    catalog = "voicemap",
+    name = "script",
+    indexes = {
+        @Index(name = "idx_script_chat_id", columnList = "chat_id")
+    }
+)
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Script {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @JoinColumn(name = "chat_id", nullable = false)
+    private Long chatId;
+
+    @Column(name = "question", nullable = false, columnDefinition = "TEXT")
+    private String question;
+
+    @Column(name = "answer", nullable = true, columnDefinition = "TEXT")
+    private String answer;
+
+    @Column(name = "is_answered", nullable = false)
+    private boolean isAnswered = false;
+
+    public Script(String question) {
+        if (StringUtils.isBlank(question)) {
+            throw new IllegalArgumentException("질문은 필수 입력 사항입니다.");
+        }
+        this.question = question;
+    }
+
+    public void answer(String answer) {
+        if (isAnswered) {
+            throw new IllegalStateException("이미 완성된 문답입니다.");
+        }
+        this.answer = answer;
+        this.isAnswered = true;
+    }
+}
