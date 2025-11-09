@@ -8,4 +8,6 @@ public interface MemberServiceInter {
     MemberDto createMember(RegisterDto registerInfo);
 
     MemberDto findMember(RegisterDto registerInfo);
+
+    MemberDto findMember(Long memberId);
 }

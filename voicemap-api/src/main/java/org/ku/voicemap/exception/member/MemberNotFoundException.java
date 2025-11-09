@@ -8,4 +8,8 @@ public class MemberNotFoundException extends MemberException {
     public MemberNotFoundException(RegisterDto registerDto) {
         super(ErrorCode.MEMBER_NOT_FOUND);
     }
+
+    public MemberNotFoundException(Long memberId) {
+        super(ErrorCode.MEMBER_NOT_FOUND);
+    }
 }

@@ -49,4 +49,15 @@ public class MemberService implements MemberServiceInter {
         return member.map(MemberDto::toDto)
             .orElseThrow(() -> new MemberNotFoundException(registerInfo));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public MemberDto findMember(Long memberId) {
+
+        Optional<Member> member = memberRepository.findById(
+            memberId);
+
+        return member.map(MemberDto::toDto)
+            .orElseThrow(() -> new MemberNotFoundException(memberId));
+    }
 }

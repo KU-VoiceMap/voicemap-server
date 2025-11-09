@@ -51,4 +51,22 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/logout")
+    public void logout(@RequestBody String clientRefreshToken) {
+        authService.logout(clientRefreshToken);
+    }
+
+    @PostMapping("/access")
+    public ResponseEntity<AuthResponse> rotateAccessToken(@RequestBody String clientRefreshToken) {
+        AuthResponse response = authService.rotateAccessToken(clientRefreshToken);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> rotateRefreshToken(@RequestBody String clientRefreshToken) {
+        AuthResponse response = authService.rotateRefreshToken(clientRefreshToken);
+        return ResponseEntity.ok(response);
+    }
+
+
 }
