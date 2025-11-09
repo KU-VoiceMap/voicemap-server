@@ -26,7 +26,7 @@ public class ChatService {
 
         return new CreateChatResponse(
             chat.getId(),
-            chatTitleSummarizer.summarize(request.question())
+            chatTitleSummarizer.summarize(request.question()) // TODO: 제목 생성 외부요청한다면 별도로 분리
         );
     }
 
