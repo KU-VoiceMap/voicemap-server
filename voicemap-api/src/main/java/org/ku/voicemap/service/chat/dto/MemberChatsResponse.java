@@ -1,4 +1,4 @@
-package org.ku.voicemap.api.chat.service.dto;
+package org.ku.voicemap.service.chat.dto;
 
 import java.util.List;
 

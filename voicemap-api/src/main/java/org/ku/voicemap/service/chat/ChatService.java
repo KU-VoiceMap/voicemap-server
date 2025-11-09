@@ -1,12 +1,12 @@
-package org.ku.voicemap.api.chat.service;
+package org.ku.voicemap.service.chat;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.ku.voicemap.api.chat.service.dto.CreateChatRequest;
-import org.ku.voicemap.api.chat.service.dto.CreateChatResponse;
-import org.ku.voicemap.api.chat.service.dto.MemberChatsResponse;
-import org.ku.voicemap.api.chat.service.dto.MemberChatsResponse.MemberChatResponse;
+import org.ku.voicemap.service.chat.dto.CreateChatRequest;
+import org.ku.voicemap.service.chat.dto.CreateChatResponse;
+import org.ku.voicemap.service.chat.dto.MemberChatsResponse;
+import org.ku.voicemap.service.chat.dto.MemberChatsResponse.MemberChatResponse;
 import org.ku.voicemap.domain.Chat;
 import org.ku.voicemap.domain.ChatRepository;
 import org.springframework.stereotype.Service;

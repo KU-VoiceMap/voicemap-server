@@ -1,4 +1,4 @@
-package org.ku.voicemap.api.chat.service;
+package org.ku.voicemap.service.chat;
 
 public interface ChatTitleSummarizer {
 

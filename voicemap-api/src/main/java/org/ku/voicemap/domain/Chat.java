@@ -1,16 +1,10 @@
 package org.ku.voicemap.domain;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -39,9 +33,6 @@ public class Chat {
 
     @Column(name = "title", length = TITLE_MAX_LENGTH, nullable = false)
     private String title;
-
-    @OneToMany(mappedBy = "chat", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
-    private List<Script> scripts;
 
     public Chat(long memberId, String title) {
         if (StringUtils.isBlank(title)) {

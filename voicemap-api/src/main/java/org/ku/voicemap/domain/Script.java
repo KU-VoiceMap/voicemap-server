@@ -7,8 +7,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,7 +29,7 @@ public class Script {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @JoinColumn(name = "chat_id", nullable = false)
+    @Column(name = "chat_id", nullable = false)
     private Long chatId;
 
     @Column(name = "question", nullable = false, columnDefinition = "TEXT")
@@ -41,18 +41,26 @@ public class Script {
     @Column(name = "is_answered", nullable = false)
     private boolean isAnswered = false;
 
-    public Script(String question) {
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "answered_at", nullable = true)
+    private LocalDateTime answeredAt;
+
+    public Script(String question, LocalDateTime createdAt) {
         if (StringUtils.isBlank(question)) {
             throw new IllegalArgumentException("질문은 필수 입력 사항입니다.");
         }
         this.question = question;
+        this.createdAt = createdAt;
     }
 
-    public void answer(String answer) {
+    public void answer(String answer, LocalDateTime answeredAt) {
         if (isAnswered) {
             throw new IllegalStateException("이미 완성된 문답입니다.");
         }
         this.answer = answer;
         this.isAnswered = true;
+        this.answeredAt = answeredAt;
     }
 }

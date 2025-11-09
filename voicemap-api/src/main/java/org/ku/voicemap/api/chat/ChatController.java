@@ -1,12 +1,11 @@
 package org.ku.voicemap.api.chat;
 
 import lombok.RequiredArgsConstructor;
-import org.ku.voicemap.api.chat.service.ChatService;
-import org.ku.voicemap.api.chat.service.dto.CreateChatRequest;
-import org.ku.voicemap.api.chat.service.dto.CreateChatResponse;
+import org.ku.voicemap.service.chat.ChatService;
+import org.ku.voicemap.service.chat.dto.CreateChatRequest;
+import org.ku.voicemap.service.chat.dto.CreateChatResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
