@@ -26,7 +26,7 @@ public class Chat {
     private static final int TITLE_MAX_LENGTH = 100;
 
     @Id
-    private String id;
+    private UUID id;
 
     @Column(name = "member_id", nullable = false)
     private Long memberId;
@@ -41,7 +41,7 @@ public class Chat {
         if (title.length() > TITLE_MAX_LENGTH) {
             throw new IllegalArgumentException("채팅 제목의 길이를 초과합니다.");
         }
-        this.id = UUID.randomUUID().toString();
+        this.id = UUID.randomUUID();
         this.memberId = memberId;
         this.title = title;
     }

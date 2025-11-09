@@ -25,7 +25,7 @@ public class ChatService {
         Chat chat = chatRepository.save(new Chat(memberId, request.question()));
 
         return new CreateChatResponse(
-            chat.getId(),
+            chat.getId().toString(),
             chatTitleSummarizer.summarize(request.question()) // TODO: 제목 생성 외부요청한다면 별도로 분리
         );
     }
@@ -34,7 +34,7 @@ public class ChatService {
         List<Chat> chats = chatRepository.findAllByMemberId(memberId);
         return new MemberChatsResponse(
             chats.stream()
-                .map(chat -> new MemberChatResponse(chat.getId(), chat.getTitle()))
+                .map(chat -> new MemberChatResponse(chat.getId().toString(), chat.getTitle()))
                 .toList()
         );
     }
