@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
+public interface TokenRepository extends JpaRepository<Token, UUID> {
 
-    Optional<RefreshToken> findByRefreshToken(String refreshToken);
+    Optional<Token> findByRefreshToken(String refreshToken);
 }

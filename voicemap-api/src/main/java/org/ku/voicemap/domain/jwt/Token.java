@@ -11,10 +11,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "refresh_token")
+@Table(name = "token")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class RefreshToken {
+public class Token {
 
     @Id
     @Column(updatable = false, length = 36)
@@ -39,8 +39,8 @@ public class RefreshToken {
     private boolean possible = true;
 
 
-    public RefreshToken(Long member, String accessToken, String refreshToken, LocalDateTime createdAt,
-                        LocalDateTime expireAt) {
+    public Token(Long member, String accessToken, String refreshToken, LocalDateTime createdAt,
+                 LocalDateTime expireAt) {
         this.id = UUID.randomUUID();
         this.memberId = member;
         this.accessToken = accessToken;

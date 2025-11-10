@@ -26,7 +26,7 @@ public class JwtService {
 
     private final JwtProperties jwtProperties;
 
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenRepository tokenRepository;
     private final MemberServiceInter memberServiceInter;
 
 
@@ -35,16 +35,16 @@ public class JwtService {
 
         String accessToken = generateAccessToken(member);
 
-        RefreshToken refreshToken = generateRefreshToken(accessToken, member.id());
-        refreshTokenRepository.save(refreshToken);
+        Token token = generateRefreshToken(accessToken, member.id());
+        tokenRepository.save(token);
 
-        return new TokenInfo(accessToken, refreshToken.getRefreshToken());
+        return new TokenInfo(accessToken, token.getRefreshToken());
 
     }
 
     @Transactional
     public TokenInfo rotateAccessToken(String token) {
-        RefreshToken refreshToken = refreshTokenRepository.findByRefreshToken(token)
+        Token refreshToken = tokenRepository.findByRefreshToken(token)
             .orElseThrow(IllegalArgumentException::new);
 
         if (!refreshToken.isPossible()) {
@@ -61,7 +61,7 @@ public class JwtService {
 
     @Transactional
     public TokenInfo rotateRefreshToken(String token) {
-        RefreshToken refreshToken = refreshTokenRepository.findByRefreshToken(token)
+        Token refreshToken = tokenRepository.findByRefreshToken(token)
             .orElseThrow(IllegalArgumentException::new);
 
         if (!refreshToken.isPossible()) {
@@ -71,9 +71,9 @@ public class JwtService {
         Long memberId = refreshToken.getMemberId();
         MemberDto memberDto = memberServiceInter.findMember(memberId);
         String newAccessToken = generateAccessToken(memberDto);
-        RefreshToken newRefreshToken = generateRefreshToken(newAccessToken, memberId);
-        refreshTokenRepository.save(newRefreshToken);
-        return new TokenInfo(newAccessToken, newRefreshToken.getRefreshToken());
+        Token newToken = generateRefreshToken(newAccessToken, memberId);
+        tokenRepository.save(newToken);
+        return new TokenInfo(newAccessToken, newToken.getRefreshToken());
     }
 
     public boolean validateToken(String token) {
@@ -108,7 +108,7 @@ public class JwtService {
 
     }
 
-    private RefreshToken generateRefreshToken(String accessToken, Long memberId) {
+    private Token generateRefreshToken(String accessToken, Long memberId) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expirationTime = now.plus(jwtProperties.refreshToken(), ChronoUnit.MILLIS);
 
@@ -123,7 +123,7 @@ public class JwtService {
                 .setExpiration(dateExp)
                 .signWith(getSigningKey())
                 .compact();
-            return new RefreshToken(memberId, accessToken, token, now, expirationTime);
+            return new Token(memberId, accessToken, token, now, expirationTime);
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException();
         }

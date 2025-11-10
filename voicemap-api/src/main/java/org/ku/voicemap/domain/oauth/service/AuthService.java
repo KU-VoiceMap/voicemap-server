@@ -2,8 +2,8 @@ package org.ku.voicemap.domain.oauth.service;
 
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.jwt.JwtService;
-import org.ku.voicemap.domain.jwt.RefreshToken;
-import org.ku.voicemap.domain.jwt.RefreshTokenRepository;
+import org.ku.voicemap.domain.jwt.Token;
+import org.ku.voicemap.domain.jwt.TokenRepository;
 import org.ku.voicemap.domain.jwt.TokenInfo;
 import org.ku.voicemap.domain.member.entity.MemberDto;
 import org.ku.voicemap.domain.member.model.Provider;
@@ -21,7 +21,7 @@ public class AuthService {
     private final MemberServiceInter memberService;
     private final TokenVerify tokenVerify;
     private final JwtService jwtService;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenRepository tokenRepository;
 
     public AuthResponse register(Provider provider, String idToken) {
 
@@ -51,9 +51,9 @@ public class AuthService {
 
     @Transactional
     public void logout(String clientRefreshToken) {
-        RefreshToken refreshToken = refreshTokenRepository.findByRefreshToken(clientRefreshToken)
+        Token token = tokenRepository.findByRefreshToken(clientRefreshToken)
             .orElseThrow(IllegalArgumentException::new);
-        refreshToken.updatePossible();
+        token.updatePossible();
     }
 
     @Transactional
