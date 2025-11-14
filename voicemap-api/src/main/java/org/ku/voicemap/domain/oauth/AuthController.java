@@ -3,6 +3,7 @@ package org.ku.voicemap.domain.oauth;
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.member.model.Provider;
 import org.ku.voicemap.domain.oauth.dto.AuthResponse;
+import org.ku.voicemap.domain.oauth.dto.RotateResponse;
 import org.ku.voicemap.domain.oauth.dto.TokenRequest;
 import org.ku.voicemap.domain.oauth.service.AuthService;
 import org.springframework.http.HttpStatus;
@@ -57,14 +58,14 @@ public class AuthController {
     }
 
     @PostMapping("/access")
-    public ResponseEntity<AuthResponse> rotateAccessToken(@RequestBody String clientRefreshToken) {
-        AuthResponse response = authService.rotateAccessToken(clientRefreshToken);
+    public ResponseEntity<RotateResponse> rotateAccessToken(@RequestBody String clientRefreshToken) {
+        RotateResponse response = authService.rotateAccessToken(clientRefreshToken);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> rotateRefreshToken(@RequestBody String clientRefreshToken) {
-        AuthResponse response = authService.rotateRefreshToken(clientRefreshToken);
+    public ResponseEntity<RotateResponse> rotateRefreshToken(@RequestBody String clientRefreshToken) {
+        RotateResponse response = authService.rotateRefreshToken(clientRefreshToken);
         return ResponseEntity.ok(response);
     }
 

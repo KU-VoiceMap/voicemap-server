@@ -9,24 +9,25 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.ku.voicemap.config.EphemeralProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileCopyUtils;
 
 @Component
+@RequiredArgsConstructor
 public class PythonExecutor {
 
-    @Value("${python.script.resource-path}")
-    private Resource pythonScriptResource;
-
+    private final EphemeralProperties ephemeralProperties;
     private String tempScriptPath;
 
     @PostConstruct
     public void initializeScript() {
-        try (InputStream inputStream = pythonScriptResource.getInputStream()) {
+        try (InputStream inputStream = ephemeralProperties.getScript().getResourcePath().getInputStream()) {
 
-            File tempFile = File.createTempFile("asdasdasd_script", ".py");
+            File tempFile = File.createTempFile("getKey_script", ".py");
             try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
                 FileCopyUtils.copy(inputStream, outputStream);
             }

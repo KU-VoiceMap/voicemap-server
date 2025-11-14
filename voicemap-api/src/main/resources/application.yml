@@ -1,18 +1,16 @@
 server.port: 8080
-
 spring:
-  application:
-    name: voicemap-api
   profiles:
     active: dev
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/11111111
-    username: root
-    password: 111111
+    url: ${db-url}
+    username:  ${db-user}
+    password:  ${db-password}
+
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create-drop
     properties:
       hibernate:
         format_sql: true
@@ -23,10 +21,16 @@ spring:
       client:
         registration:
           google:
-            client-id:
-            client-secret:
+            client-id:  ${googleclient-id}
+            client-secret:  ${googleclient-secret}
             scope:
               - email
-
-
----
+app:
+  jwt:
+    secret-key:  ${app.jwt.secret-key}
+    access-token: 1800000     # 30분 (밀리초 단위)
+    refresh-token: 604800000
+python:
+  apikey: ${apiKey}
+  script:
+    resource-path: classpath:getKey.py

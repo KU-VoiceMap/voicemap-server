@@ -23,11 +23,4 @@ public class EphemeralTokenController {
         return ResponseEntity.ok(ephemeralService.rotateEphemeralToken(userId, oldToken, createEphemeralRequest));
     }
 
-    @GetMapping("/test")
-    public ResponseEntity<EphemeralTokenResponse> test() {
-        CreateEphemeralRequest createEphemeralRequest = new CreateEphemeralRequest(10, 5, 5);
-        return ResponseEntity.ok(ephemeralService.createEphemeralToken(1L, createEphemeralRequest));
-    }
-
-
 }

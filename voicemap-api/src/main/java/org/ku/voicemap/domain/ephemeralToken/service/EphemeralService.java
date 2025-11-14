@@ -2,6 +2,7 @@ package org.ku.voicemap.domain.ephemeralToken.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.ku.voicemap.config.EphemeralProperties;
 import org.ku.voicemap.domain.ephemeralToken.dto.CreateEphemeralRequest;
 import org.ku.voicemap.domain.ephemeralToken.dto.EphemeralTokenResponse;
 import org.ku.voicemap.domain.ephemeralToken.entity.EphemeralToken;
@@ -13,14 +14,13 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EphemeralService {
 
-    @Value("${python.apikey}")
-    private String apiKey;
+    private final EphemeralProperties ephemeralProperties;
     private final PythonExecutor pythonExecutor;
     private final EphemeralTokenRepository ephemeralTokenRepository;
 
     public EphemeralTokenResponse createEphemeralToken(Long userId, CreateEphemeralRequest createEphemeralRequest) {
 
-        String token = pythonExecutor.createGoogleAuthToken(apiKey, createEphemeralRequest.uses(),
+        String token = pythonExecutor.createGoogleAuthToken(ephemeralProperties.getApikey(), createEphemeralRequest.uses(),
             createEphemeralRequest.expireMinutes(), createEphemeralRequest.sessionExpireMinutes());
         EphemeralToken ephemeralToken = new EphemeralToken(userId, createEphemeralRequest.uses(),
             createEphemeralRequest.expireMinutes(), createEphemeralRequest.sessionExpireMinutes(), token);
@@ -34,7 +34,7 @@ public class EphemeralService {
         ephemeralTokenRepository.findByUserIdAndEphemeralToken(userId, oldToken)
             .orElseThrow(EntityNotFoundException::new);
 
-        String token = pythonExecutor.createGoogleAuthToken(apiKey, createEphemeralRequest.uses(),
+        String token = pythonExecutor.createGoogleAuthToken(ephemeralProperties.getApikey(), createEphemeralRequest.uses(),
             createEphemeralRequest.expireMinutes(),
             createEphemeralRequest.sessionExpireMinutes());
 

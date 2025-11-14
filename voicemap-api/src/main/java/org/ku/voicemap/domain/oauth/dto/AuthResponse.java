@@ -1,5 +1,7 @@
 package org.ku.voicemap.domain.oauth.dto;
 
-public record AuthResponse(String accessToken,String refreshToken) {
+import org.ku.voicemap.domain.ephemeralToken.dto.EphemeralTokenResponse;
+
+public record AuthResponse(String accessToken, String refreshToken, EphemeralTokenResponse ephemeralTokenResponse) {
 
 }
