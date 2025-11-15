@@ -28,6 +28,7 @@ public class AuthService {
             throw new AuthClientNotConnectedException();
         }
         Token token = tokenProvider.generateToken(authClient.getMemberNumber());
+        tokenRepository.save(token);
         return new TokenResponse(token.getAccessToken(), token.getRefreshToken());
     }
 

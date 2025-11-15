@@ -12,10 +12,9 @@ import java.util.Date;
 import org.ku.voicemap.domain.auth.config.JwtProperties;
 import org.ku.voicemap.domain.auth.entity.Token;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 @EnableConfigurationProperties(JwtProperties.class)
 public class TokenProvider {
 
@@ -33,7 +32,6 @@ public class TokenProvider {
         this.tokenVerifier = JWT.require(algorithm).withClaimPresence("memberNumber").build();
     }
 
-    @Transactional
     public Token generateToken(String memberNumber) {
         String accessToken = generateAccessToken(memberNumber);
         return generateRefreshToken(accessToken, memberNumber);
