@@ -17,7 +17,7 @@ import org.ku.voicemap.domain.auth.AuthProvider;
     name = "auth_client",
     indexes = {
         @Index(name = "uk_auth_client_provider_principal", columnList = "provider, principal", unique = true),
-        @Index(name = "idx_auth_client_member_id", columnList = "member_id"),
+        @Index(name = "idx_auth_client_member_number", columnList = "member_number"),
     }
 )
 @Getter
