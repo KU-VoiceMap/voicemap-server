@@ -1,4 +1,4 @@
-package org.ku.voicemap.domain.oauth.dto;
+package org.ku.voicemap.domain.auth.dto;
 
 public record TokenRequest(String idToken) {
 

@@ -1,4 +1,4 @@
-package org.ku.voicemap.domain.oauth.verify;
+package org.ku.voicemap.domain.auth.verify;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
@@ -10,9 +10,8 @@ import java.security.GeneralSecurityException;
 import java.util.Collections;
 import org.ku.voicemap.config.GoogleProperties;
 import org.ku.voicemap.domain.member.model.Provider;
-import org.ku.voicemap.domain.oauth.dto.RegisterDto;
+import org.ku.voicemap.domain.auth.dto.RegisterDto;
 import org.ku.voicemap.exception.auth.AuthFailedException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component

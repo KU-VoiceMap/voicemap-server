@@ -14,7 +14,7 @@ import java.util.Date;
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.config.JwtProperties;
 import org.ku.voicemap.domain.member.entity.MemberDto;
-import org.ku.voicemap.domain.member.service.MemberServiceInter;
+import org.ku.voicemap.domain.member.service.MemberService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -27,7 +27,7 @@ public class JwtService {
     private final JwtProperties jwtProperties;
 
     private final TokenRepository tokenRepository;
-    private final MemberServiceInter memberServiceInter;
+    private final MemberService memberService;
 
 
     @Transactional
@@ -52,7 +52,7 @@ public class JwtService {
         }
 
         Long memberId = refreshToken.getMemberId();
-        MemberDto memberDto = memberServiceInter.findMember(memberId);
+        MemberDto memberDto = memberService.findMember(memberId);
         String newAccessToken = generateAccessToken(memberDto);
         refreshToken.updateAccessToken(newAccessToken);
 
@@ -69,7 +69,7 @@ public class JwtService {
         }
         refreshToken.updatePossible();
         Long memberId = refreshToken.getMemberId();
-        MemberDto memberDto = memberServiceInter.findMember(memberId);
+        MemberDto memberDto = memberService.findMember(memberId);
         String newAccessToken = generateAccessToken(memberDto);
         Token newToken = generateRefreshToken(newAccessToken, memberId);
         tokenRepository.save(newToken);

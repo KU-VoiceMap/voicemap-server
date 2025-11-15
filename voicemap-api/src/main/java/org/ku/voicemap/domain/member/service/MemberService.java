@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.member.entity.Member;
 import org.ku.voicemap.domain.member.entity.MemberDto;
 import org.ku.voicemap.domain.member.repository.MemberRepository;
-import org.ku.voicemap.domain.oauth.dto.RegisterDto;
+import org.ku.voicemap.domain.auth.dto.RegisterDto;
 import org.ku.voicemap.exception.member.MemberExistRegister;
 import org.ku.voicemap.exception.member.MemberNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -14,11 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class MemberService implements MemberServiceInter {
+public class MemberService {
 
     private final MemberRepository memberRepository;
 
-    @Override
     @Transactional
     public MemberDto createMember(RegisterDto registerInfo) {
 
@@ -39,7 +38,6 @@ public class MemberService implements MemberServiceInter {
     }
 
 
-    @Override
     @Transactional(readOnly = true)
     public MemberDto findMember(RegisterDto registerInfo) {
 
@@ -50,7 +48,6 @@ public class MemberService implements MemberServiceInter {
             .orElseThrow(() -> new MemberNotFoundException(registerInfo));
     }
 
-    @Override
     @Transactional(readOnly = true)
     public MemberDto findMember(Long memberId) {
 

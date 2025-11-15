@@ -1,4 +1,4 @@
-package org.ku.voicemap.domain.oauth.service;
+package org.ku.voicemap.domain.auth.service;
 
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.jwt.JwtService;
@@ -7,10 +7,10 @@ import org.ku.voicemap.domain.jwt.TokenRepository;
 import org.ku.voicemap.domain.jwt.TokenInfo;
 import org.ku.voicemap.domain.member.entity.MemberDto;
 import org.ku.voicemap.domain.member.model.Provider;
-import org.ku.voicemap.domain.member.service.MemberServiceInter;
-import org.ku.voicemap.domain.oauth.dto.AuthResponse;
-import org.ku.voicemap.domain.oauth.dto.RegisterDto;
-import org.ku.voicemap.domain.oauth.verify.TokenVerify;
+import org.ku.voicemap.domain.auth.dto.AuthResponse;
+import org.ku.voicemap.domain.auth.dto.RegisterDto;
+import org.ku.voicemap.domain.auth.verify.TokenVerify;
+import org.ku.voicemap.domain.member.service.MemberService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final MemberServiceInter memberService;
+    private final MemberService memberService;
     private final TokenVerify tokenVerify;
     private final JwtService jwtService;
     private final TokenRepository tokenRepository;
