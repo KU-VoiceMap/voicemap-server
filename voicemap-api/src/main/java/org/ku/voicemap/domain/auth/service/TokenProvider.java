@@ -1,31 +1,37 @@
 package org.ku.voicemap.domain.auth.service;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.InvalidKeyException;
-import io.jsonwebtoken.security.Keys;
-import java.security.Key;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.auth0.jwt.interfaces.JWTVerifier;
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
-import java.util.Collections;
+import java.time.ZoneOffset;
 import java.util.Date;
-import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.auth.config.JwtProperties;
 import org.ku.voicemap.domain.auth.entity.Token;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 @EnableConfigurationProperties(JwtProperties.class)
 public class TokenProvider {
 
-    private final JwtProperties jwtProperties;
+    private static final ZoneOffset KST = ZoneOffset.ofHours(9);
+
+    private final Algorithm algorithm;
+    private final Duration accessTokenExpireDuration;
+    private final Duration refreshTokenExpireDuration;
+    private final JWTVerifier tokenVerifier;
+
+    public TokenProvider(JwtProperties jwtProperties) {
+        this.algorithm = Algorithm.HMAC256(jwtProperties.secretKey());
+        this.accessTokenExpireDuration = jwtProperties.accessTokenExpireDuration();
+        this.refreshTokenExpireDuration = jwtProperties.refreshTokenExpireDuration();
+        this.tokenVerifier = JWT.require(algorithm).withClaimPresence("memberNumber").build();
+    }
 
     @Transactional
     public Token generateToken(String memberNumber) {
@@ -35,83 +41,33 @@ public class TokenProvider {
 
     public String generateAccessToken(String memberNumber) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expirationTime = now.plus(jwtProperties.accessToken(), ChronoUnit.MILLIS);
-
-        Date dateNow = Date.from(now.atZone(ZoneId.systemDefault()).toInstant());
-        Date dateExp = Date.from(expirationTime.atZone(ZoneId.systemDefault()).toInstant());
-        try {
-            return Jwts.builder()
-                .claim("memberNumber", memberNumber)
-                .claim("type", "ACCESS")
-                .setIssuedAt(dateNow)
-                .setExpiration(dateExp)
-                .signWith(getSigningKey())
-                .compact();
-        } catch (Exception e) {
-            throw new IllegalArgumentException();
-        }
+        LocalDateTime expirationTime = now.plus(accessTokenExpireDuration);
+        return JWT.create()
+            .withClaim("memberNumber", memberNumber)
+            .withClaim("type", "ACCESS")
+            .withIssuedAt(now.toInstant(KST))
+            .withExpiresAt(expirationTime.toInstant(KST))
+            .sign(algorithm);
     }
 
     public Token generateRefreshToken(String accessToken, String memberNumber) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expirationTime = now.plus(jwtProperties.refreshToken(), ChronoUnit.MILLIS);
-
-        Date dateNow = Date.from(now.atZone(ZoneId.systemDefault()).toInstant());
-        Date dateExp = Date.from(expirationTime.atZone(ZoneId.systemDefault()).toInstant());
-
-        try {
-            String refreshToken = Jwts.builder()
-                .claim("memberNumber", memberNumber)
-                .claim("type", "REFRESH")
-                .setIssuedAt(dateNow)
-                .setExpiration(dateExp)
-                .signWith(getSigningKey())
-                .compact();
-            return new Token(accessToken, refreshToken, now, expirationTime);
-        } catch (InvalidKeyException e) {
-            throw new IllegalArgumentException();
-        }
+        LocalDateTime expirationTime = now.plus(refreshTokenExpireDuration);
+        String refreshToken = JWT.create()
+            .withClaim("memberNumber", memberNumber)
+            .withClaim("type", "REFRESH")
+            .withIssuedAt(now.toInstant(KST))
+            .withExpiresAt(expirationTime.toInstant(KST))
+            .sign(algorithm);
+        return new Token(accessToken, refreshToken, now, expirationTime);
     }
 
     public boolean validateToken(String token) {
-        // TODO: 토큰 내부 검사
         try {
-            Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token);
-            return true;
-        } catch (Exception e) {
+            DecodedJWT decodedToken = tokenVerifier.verify(token);
+            return decodedToken.getExpiresAt().after(new Date());
+        } catch (JWTVerificationException e) {
             return false;
         }
-    }
-
-    private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtProperties.secretKey().getBytes());
-    }
-
-    public Claims parseClaims(String token) {
-        try {
-            return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        } catch (ExpiredJwtException e) {
-            return e.getClaims();
-        }
-    }
-
-    public Authentication getAuthentication(String token) {
-        Claims claims = parseClaims(token);
-
-        // "type" 클레임 검사 (매우 중요)
-        if (!"ACCESS".equals(claims.get("type", String.class))) {
-            throw new IllegalArgumentException();
-        }
-
-        String memberId = claims.get("memberId", String.class);
-
-        return new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList());
     }
 }

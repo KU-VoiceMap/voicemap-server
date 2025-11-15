@@ -23,4 +23,8 @@ auth:
   google:
     client-id:
 
+jwt:
+  secret: secretsecretsecretsecret
+  access-token-expiration: 1h
+  refresh-token-expiration: 7d
 ---

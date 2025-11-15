@@ -1,11 +1,12 @@
 package org.ku.voicemap.domain.auth.config;
 
+import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "app.jwt")
+@ConfigurationProperties(prefix = "jwt")
 public record JwtProperties(
     String secretKey,
-    Long accessToken,
-    Long refreshToken
+    Duration accessTokenExpireDuration,
+    Duration refreshTokenExpireDuration
 ) {
 }
