@@ -9,7 +9,7 @@ import org.ku.voicemap.domain.jwt.Token;
 import org.ku.voicemap.domain.jwt.TokenInfo;
 import org.ku.voicemap.domain.jwt.TokenRepository;
 import org.ku.voicemap.domain.member.entity.MemberDto;
-import org.ku.voicemap.domain.member.model.Provider;
+import org.ku.voicemap.domain.auth.OAuthProvider;
 import org.ku.voicemap.domain.member.service.MemberService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +23,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final TokenRepository tokenRepository;
 
-    public AuthResponse register(Provider provider, String idToken) {
+    public AuthResponse register(OAuthProvider provider, String idToken) {
 
         RegisterDto registerInfo = verifyIdToken(provider, idToken);
 
@@ -37,7 +37,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse login(Provider provider, String idToken) {
+    public AuthResponse login(OAuthProvider provider, String idToken) {
 
         RegisterDto registerInfo = verifyIdToken(provider, idToken);
 
@@ -70,11 +70,11 @@ public class AuthService {
 
 
     //Provider마다 토큰 다르게 검증
-    private RegisterDto verifyIdToken(Provider provider, String idToken) {
+    private RegisterDto verifyIdToken(OAuthProvider provider, String idToken) {
 
         RegisterDto registerInfo = null;
 
-        if (provider == Provider.GOOGLE) {
+        if (provider == OAuthProvider.GOOGLE) {
             registerInfo = tokenVerify.toGoogle(idToken);
         }
 

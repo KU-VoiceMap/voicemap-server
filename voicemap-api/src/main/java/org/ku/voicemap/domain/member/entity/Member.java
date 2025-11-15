@@ -15,7 +15,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.ku.voicemap.domain.member.model.Provider;
+import org.ku.voicemap.domain.auth.OAuthProvider;
 
 
 @Entity
@@ -40,17 +40,17 @@ public class Member {
     private LocalDateTime createdAt;
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false)
-    private Provider provider;
+    private OAuthProvider provider;
 
     @Builder
-    private Member(String providerId, String email, Provider provider) {
+    private Member(String providerId, String email, OAuthProvider provider) {
         this.providerId = providerId;
         this.email = email;
         this.provider = provider;
         this.createdAt = LocalDateTime.now();
     }
 
-    public static Member createMember(String providerId, String email, Provider provider) {
+    public static Member createMember(String providerId, String email, OAuthProvider provider) {
         return Member.builder()
             .providerId(providerId)
             .email(email)

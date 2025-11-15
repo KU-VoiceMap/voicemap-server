@@ -1,5 +1,7 @@
 package org.ku.voicemap.domain.auth.dto;
 
-public record TokenRequest(String idToken) {
+import org.ku.voicemap.domain.auth.OAuthProvider;
+
+public record TokenRequest(OAuthProvider provider, String idToken) {
 
 }

@@ -10,7 +10,7 @@ import java.security.GeneralSecurityException;
 import java.util.Collections;
 import org.ku.voicemap.config.GoogleProperties;
 import org.ku.voicemap.domain.auth.dto.RegisterDto;
-import org.ku.voicemap.domain.member.model.Provider;
+import org.ku.voicemap.domain.auth.OAuthProvider;
 import org.ku.voicemap.exception.auth.AuthFailedException;
 import org.springframework.stereotype.Component;
 
@@ -41,7 +41,7 @@ public class TokenVerify {
 
             Payload payload = googleToken.getPayload();
 
-            return new RegisterDto(payload.getSubject(), payload.getEmail(), Provider.GOOGLE);
+            return new RegisterDto(payload.getSubject(), payload.getEmail(), OAuthProvider.GOOGLE);
 
         } catch (GeneralSecurityException e) {
             throw new RuntimeException(e);
