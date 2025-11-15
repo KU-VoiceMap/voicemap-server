@@ -7,10 +7,10 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Collections;
+import java.util.List;
 import org.ku.voicemap.config.GoogleProperties;
+import org.ku.voicemap.domain.auth.AuthProvider;
 import org.ku.voicemap.domain.auth.dto.RegisterDto;
-import org.ku.voicemap.domain.auth.OAuthProvider;
 import org.ku.voicemap.exception.auth.AuthFailedException;
 import org.springframework.stereotype.Component;
 
@@ -21,36 +21,23 @@ public class TokenVerify {
     private final String googleClientId;
 
     public TokenVerify(GoogleProperties googleProp) {
-
         this.googleClientId = googleProp.clientId();
-
-        this.googleIdTokenVerifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(),
-            JacksonFactory.getDefaultInstance())
-            .setAudience(Collections.singletonList(googleProp.clientId()))
+        this.googleIdTokenVerifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), JacksonFactory.getDefaultInstance())
+            .setAudience(List.of(googleProp.clientId()))
             .build();
     }
 
     public RegisterDto toGoogle(String idToken) {
         try {
-
             GoogleIdToken googleToken = googleIdTokenVerifier.verify(idToken);
-
             if (!googleToken.getPayload().getAudience().equals(googleClientId)) {
                 throw new AuthFailedException(idToken);
             }
-
             Payload payload = googleToken.getPayload();
+            return new RegisterDto(payload.getSubject(), payload.getEmail(), AuthProvider.GOOGLE);
 
-            return new RegisterDto(payload.getSubject(), payload.getEmail(), OAuthProvider.GOOGLE);
-
-        } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
+        } catch (GeneralSecurityException | IOException e) {
             throw new RuntimeException(e);
         }
-
-
     }
-
-
 }

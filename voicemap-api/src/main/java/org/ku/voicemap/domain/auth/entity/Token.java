@@ -1,8 +1,11 @@
-package org.ku.voicemap.domain.jwt;
+package org.ku.voicemap.domain.auth.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -20,8 +23,9 @@ public class Token {
     @Column(updatable = false, length = 36)
     private UUID id;
 
-    @Column(name = "member_id", nullable = false)
-    private Long memberId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "auth_client_id", nullable = false)
+    private AuthClient authClient;
 
     @Column(nullable = false, unique = true, columnDefinition = "VARCHAR(1000)")
     private String accessToken;
@@ -36,25 +40,26 @@ public class Token {
     private LocalDateTime expireAt;
 
     @Column(nullable = false)
-    private boolean possible = true;
+    private Boolean reissuable;
 
-
-    public Token(Long member, String accessToken, String refreshToken, LocalDateTime createdAt,
-                 LocalDateTime expireAt) {
+    public Token(String accessToken, String refreshToken, LocalDateTime createdAt, LocalDateTime expireAt) {
         this.id = UUID.randomUUID();
-        this.memberId = member;
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.expireAt = expireAt;
         this.createdAt = createdAt;
+        this.reissuable = true;
     }
 
     public void updateAccessToken(String accessToken) {
         this.accessToken = accessToken;
     }
 
-    public void updatePossible() {
-        this.possible = false;
+    public void invalidate() {
+        this.reissuable = false;
     }
 
+    public boolean isValid(LocalDateTime now) {
+        return (now.equals(expireAt) || now.isBefore(expireAt)) && reissuable;
+    }
 }

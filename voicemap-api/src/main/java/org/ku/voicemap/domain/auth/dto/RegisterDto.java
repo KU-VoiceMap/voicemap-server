@@ -1,9 +1,6 @@
 package org.ku.voicemap.domain.auth.dto;
 
-import org.ku.voicemap.domain.auth.OAuthProvider;
+import org.ku.voicemap.domain.auth.AuthProvider;
 
-public record RegisterDto(
-    String providerId, String email, OAuthProvider provider
-) {
-
+public record RegisterDto(String providerId, String email, AuthProvider provider) {
 }

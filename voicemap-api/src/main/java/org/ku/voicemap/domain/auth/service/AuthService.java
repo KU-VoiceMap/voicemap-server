@@ -1,16 +1,15 @@
 package org.ku.voicemap.domain.auth.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.ku.voicemap.domain.auth.dto.AuthResponse;
-import org.ku.voicemap.domain.auth.dto.RegisterDto;
+import org.ku.voicemap.domain.auth.AuthProvider;
+import org.ku.voicemap.domain.auth.dto.TokenResponse;
+import org.ku.voicemap.domain.auth.entity.AuthClient;
+import org.ku.voicemap.domain.auth.entity.AuthClientRepository;
+import org.ku.voicemap.domain.auth.entity.Token;
+import org.ku.voicemap.domain.auth.entity.TokenRepository;
 import org.ku.voicemap.domain.auth.verify.TokenVerify;
-import org.ku.voicemap.domain.jwt.JwtService;
-import org.ku.voicemap.domain.jwt.Token;
-import org.ku.voicemap.domain.jwt.TokenInfo;
-import org.ku.voicemap.domain.jwt.TokenRepository;
-import org.ku.voicemap.domain.member.entity.MemberDto;
-import org.ku.voicemap.domain.auth.OAuthProvider;
-import org.ku.voicemap.domain.member.service.MemberService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,66 +17,56 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final MemberService memberService;
     private final TokenVerify tokenVerify;
-    private final JwtService jwtService;
+    private final TokenProvider tokenProvider;
     private final TokenRepository tokenRepository;
-
-    public AuthResponse register(OAuthProvider provider, String idToken) {
-
-        RegisterDto registerInfo = verifyIdToken(provider, idToken);
-
-        MemberDto memberDto = memberService.createMember(registerInfo);
-
-        TokenInfo tokenInfo = jwtService.generateToken(memberDto);
-
-        //여기에 클라이언트에서 쓸 llm 토큰도 발급하는 코드 추가 예정
-
-        return new AuthResponse(tokenInfo.accessToken(), tokenInfo.refreshToken());
-    }
+    private final AuthClientRepository authClientRepository;
 
     @Transactional
-    public AuthResponse login(OAuthProvider provider, String idToken) {
+    public TokenResponse login(String email, AuthProvider provider, String principal) {
+        AuthClient authClient = authClientRepository.findByProviderAndPrincipal(provider, principal)
+            .orElseGet(() -> authClientRepository.save(new AuthClient(email, provider, principal)));
 
-        RegisterDto registerInfo = verifyIdToken(provider, idToken);
-
-        MemberDto memberDto = memberService.findMember(registerInfo);
-        TokenInfo tokenInfo = jwtService.generateToken(memberDto);
-
-        //여기에 클라이언트에서 쓸 llm 토큰도 발급하는 코드 추가 예정
-
-        return new AuthResponse(tokenInfo.accessToken(), tokenInfo.refreshToken());
+        if (!authClient.isConnected()) {
+            throw new AuthClientNotConnectedException();
+        }
+        Token token = tokenProvider.generateToken(authClient.getMemberNumber());
+        return new TokenResponse(token.getAccessToken(), token.getRefreshToken());
     }
 
     @Transactional
     public void logout(String clientRefreshToken) {
         Token token = tokenRepository.findByRefreshToken(clientRefreshToken)
             .orElseThrow(IllegalArgumentException::new);
-        token.updatePossible();
+        token.invalidate();
+        tokenRepository.save(token);
     }
 
     @Transactional
-    public AuthResponse rotateAccessToken(String clientRefreshToken) {
-        TokenInfo tokenInfo = jwtService.rotateAccessToken(clientRefreshToken);
-        return new AuthResponse(tokenInfo.accessToken(), tokenInfo.refreshToken());
-    }
-
-    @Transactional
-    public AuthResponse rotateRefreshToken(String clientRefreshToken) {
-        TokenInfo tokenInfo = jwtService.rotateRefreshToken(clientRefreshToken);
-        return new AuthResponse(tokenInfo.accessToken(), tokenInfo.refreshToken());
-    }
-
-
-    //Provider마다 토큰 다르게 검증
-    private RegisterDto verifyIdToken(OAuthProvider provider, String idToken) {
-
-        RegisterDto registerInfo = null;
-
-        if (provider == OAuthProvider.GOOGLE) {
-            registerInfo = tokenVerify.toGoogle(idToken);
+    public TokenResponse rotateAccessToken(String refreshToken, LocalDateTime now) {
+        Token token = tokenRepository.findByRefreshTokenWithAuthClient(refreshToken)
+            .orElseThrow(IllegalArgumentException::new);
+        if (!token.isValid(now)) {
+            throw new InvalidTokenException();
         }
+        String memberNumber = token.getAuthClient().getMemberNumber();
+        String newAccessToken = tokenProvider.generateAccessToken(memberNumber);
+        token.updateAccessToken(newAccessToken);
+        tokenRepository.save(token);
+        return new TokenResponse(newAccessToken, token.getRefreshToken());
+    }
 
-        return registerInfo;
+    @Transactional
+    public TokenResponse rotateRefreshToken(String refreshToken, LocalDateTime now) {
+        Token token = tokenRepository.findByRefreshTokenWithAuthClient(refreshToken)
+            .orElseThrow(IllegalArgumentException::new);
+        if (!token.isValid(now)) {
+            throw new InvalidTokenException();
+        }
+        token.invalidate();
+        String memberNumber = token.getAuthClient().getMemberNumber();
+        Token newToken = tokenProvider.generateToken(memberNumber);
+        tokenRepository.saveAll(List.of(token, newToken));
+        return new TokenResponse(newToken.getAccessToken(), newToken.getRefreshToken());
     }
 }

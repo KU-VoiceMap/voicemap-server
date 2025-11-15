@@ -1,4 +1,4 @@
-package org.ku.voicemap.domain.jwt;
+package org.ku.voicemap.domain.auth.service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -13,8 +13,7 @@ import java.util.Collections;
 import java.util.Date;
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.config.JwtProperties;
-import org.ku.voicemap.domain.member.entity.MemberDto;
-import org.ku.voicemap.domain.member.service.MemberService;
+import org.ku.voicemap.domain.auth.entity.Token;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -22,81 +21,25 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class JwtService {
+public class TokenProvider {
 
     private final JwtProperties jwtProperties;
 
-    private final TokenRepository tokenRepository;
-    private final MemberService memberService;
-
-
     @Transactional
-    public TokenInfo generateToken(MemberDto member) {
-
-        String accessToken = generateAccessToken(member);
-
-        Token token = generateRefreshToken(accessToken, member.id());
-        tokenRepository.save(token);
-
-        return new TokenInfo(accessToken, token.getRefreshToken());
-
+    public Token generateToken(String memberNumber) {
+        String accessToken = generateAccessToken(memberNumber);
+        return generateRefreshToken(accessToken, memberNumber);
     }
 
-    @Transactional
-    public TokenInfo rotateAccessToken(String token) {
-        Token refreshToken = tokenRepository.findByRefreshToken(token)
-            .orElseThrow(IllegalArgumentException::new);
-
-        if (!refreshToken.isPossible()) {
-            throw new IllegalArgumentException();
-        }
-
-        Long memberId = refreshToken.getMemberId();
-        MemberDto memberDto = memberService.findMember(memberId);
-        String newAccessToken = generateAccessToken(memberDto);
-        refreshToken.updateAccessToken(newAccessToken);
-
-        return new TokenInfo(newAccessToken, refreshToken.getRefreshToken());
-    }
-
-    @Transactional
-    public TokenInfo rotateRefreshToken(String token) {
-        Token refreshToken = tokenRepository.findByRefreshToken(token)
-            .orElseThrow(IllegalArgumentException::new);
-
-        if (!refreshToken.isPossible()) {
-            throw new IllegalArgumentException();
-        }
-        refreshToken.updatePossible();
-        Long memberId = refreshToken.getMemberId();
-        MemberDto memberDto = memberService.findMember(memberId);
-        String newAccessToken = generateAccessToken(memberDto);
-        Token newToken = generateRefreshToken(newAccessToken, memberId);
-        tokenRepository.save(newToken);
-        return new TokenInfo(newAccessToken, newToken.getRefreshToken());
-    }
-
-    public boolean validateToken(String token) {
-        try {
-            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
-            return true;
-        } catch (Exception e) {
-
-        }
-        return false;
-    }
-
-
-    private String generateAccessToken(MemberDto member) {
-
+    public String generateAccessToken(String memberNumber) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expirationTime = now.plus(jwtProperties.accessToken(), ChronoUnit.MILLIS);
 
         Date dateNow = Date.from(now.atZone(ZoneId.systemDefault()).toInstant());
         Date dateExp = Date.from(expirationTime.atZone(ZoneId.systemDefault()).toInstant());
-        try {//나중에 토큰에 넣을거 더 넣기
+        try {
             return Jwts.builder()
-                .claim("memberId", member.id().toString())
+                .claim("memberNumber", memberNumber)
                 .claim("type", "ACCESS")
                 .setIssuedAt(dateNow)
                 .setExpiration(dateExp)
@@ -105,10 +48,9 @@ public class JwtService {
         } catch (Exception e) {
             throw new IllegalArgumentException();
         }
-
     }
 
-    private Token generateRefreshToken(String accessToken, Long memberId) {
+    public Token generateRefreshToken(String accessToken, String memberNumber) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expirationTime = now.plus(jwtProperties.refreshToken(), ChronoUnit.MILLIS);
 
@@ -116,24 +58,35 @@ public class JwtService {
         Date dateExp = Date.from(expirationTime.atZone(ZoneId.systemDefault()).toInstant());
 
         try {
-            String token = Jwts.builder()
-                .claim("memberId", memberId.toString())
+            String refreshToken = Jwts.builder()
+                .claim("memberNumber", memberNumber)
                 .claim("type", "REFRESH")
                 .setIssuedAt(dateNow)
                 .setExpiration(dateExp)
                 .signWith(getSigningKey())
                 .compact();
-            return new Token(memberId, accessToken, token, now, expirationTime);
+            return new Token(accessToken, refreshToken, now, expirationTime);
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException();
         }
     }
 
+    public boolean validateToken(String token) {
+        // TODO: 토큰 내부 검사
+        try {
+            Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(jwtProperties.secretKey().getBytes());
     }
-
 
     public Claims parseClaims(String token) {
         try {
@@ -159,5 +112,4 @@ public class JwtService {
 
         return new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList());
     }
-
 }
