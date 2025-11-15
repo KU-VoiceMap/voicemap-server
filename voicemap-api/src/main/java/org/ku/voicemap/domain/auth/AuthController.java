@@ -5,8 +5,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.auth.dto.ExternalMember;
+import org.ku.voicemap.domain.auth.dto.LogoutRequest;
 import org.ku.voicemap.domain.auth.dto.TokenResponse;
 import org.ku.voicemap.domain.auth.dto.TokenRequest;
+import org.ku.voicemap.domain.auth.dto.TokenRotateRequest;
 import org.ku.voicemap.domain.auth.service.AuthClientNotConnectedException;
 import org.ku.voicemap.domain.auth.service.AuthService;
 import org.ku.voicemap.domain.auth.service.ExternalMemberInfoProvider;
@@ -41,19 +43,19 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public void logout(@Valid @RequestBody String refreshToken) {
-        authService.logout(refreshToken);
+    public void logout(@Valid @RequestBody LogoutRequest request) {
+        authService.logout(request.refreshToken());
     }
 
     @PostMapping("/access")
-    public ResponseEntity<TokenResponse> rotateAccessToken(@RequestBody String refreshToken) {
-        TokenResponse response = authService.rotateAccessToken(refreshToken, LocalDateTime.now());
+    public ResponseEntity<TokenResponse> rotateAccessToken(@RequestBody TokenRotateRequest request) {
+        TokenResponse response = authService.rotateAccessToken(request.refreshToken(), LocalDateTime.now());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponse> rotateRefreshToken(@RequestBody String refreshToken) {
-        TokenResponse response = authService.rotateRefreshToken(refreshToken, LocalDateTime.now());
+    public ResponseEntity<TokenResponse> rotateRefreshToken(@RequestBody TokenRotateRequest request) {
+        TokenResponse response = authService.rotateRefreshToken(request.refreshToken(), LocalDateTime.now());
         return ResponseEntity.ok(response);
     }
 }
