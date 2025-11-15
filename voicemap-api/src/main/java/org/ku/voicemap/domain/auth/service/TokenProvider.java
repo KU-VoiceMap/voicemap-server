@@ -12,8 +12,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Date;
 import lombok.RequiredArgsConstructor;
-import org.ku.voicemap.config.JwtProperties;
+import org.ku.voicemap.domain.auth.config.JwtProperties;
 import org.ku.voicemap.domain.auth.entity.Token;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@EnableConfigurationProperties(JwtProperties.class)
 public class TokenProvider {
 
     private final JwtProperties jwtProperties;

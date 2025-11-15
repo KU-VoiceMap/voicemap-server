@@ -4,12 +4,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.auth.AuthProvider;
+import org.ku.voicemap.domain.auth.dto.ExternalMember;
 import org.ku.voicemap.domain.auth.dto.TokenResponse;
 import org.ku.voicemap.domain.auth.entity.AuthClient;
 import org.ku.voicemap.domain.auth.entity.AuthClientRepository;
 import org.ku.voicemap.domain.auth.entity.Token;
 import org.ku.voicemap.domain.auth.entity.TokenRepository;
-import org.ku.voicemap.domain.auth.verify.TokenVerify;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,13 +17,22 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final TokenVerify tokenVerify;
+    private final List<ExternalMemberInfoProvider> externalMemberInfoProviders;
     private final TokenProvider tokenProvider;
     private final TokenRepository tokenRepository;
     private final AuthClientRepository authClientRepository;
 
     @Transactional
-    public TokenResponse login(String email, AuthProvider provider, String principal) {
+    public TokenResponse login(AuthProvider provider, String providerToken) {
+        // TODO: 트랜잭션 분리
+        ExternalMemberInfoProvider externalMemberInfoProvider = externalMemberInfoProviders.stream()
+            .filter(memberInfoProvider -> memberInfoProvider.supports(provider))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("지원하지 않는 인증 제공자입니다."));
+        ExternalMember externalMember = externalMemberInfoProvider.provide(providerToken);
+
+        String email = externalMember.email();
+        String principal = externalMember.principal();
         AuthClient authClient = authClientRepository.findByProviderAndPrincipal(provider, principal)
             .orElseGet(() -> authClientRepository.save(new AuthClient(email, provider, principal)));
 

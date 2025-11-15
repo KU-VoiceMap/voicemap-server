@@ -1,8 +1,8 @@
-package org.ku.voicemap.config;
+package org.ku.voicemap.domain.auth.service.provider.google;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "spring.security.oauth2.client.registration.google")
+@ConfigurationProperties(prefix = "auth.google")
 public record GoogleProperties(
     String clientId
 ) {

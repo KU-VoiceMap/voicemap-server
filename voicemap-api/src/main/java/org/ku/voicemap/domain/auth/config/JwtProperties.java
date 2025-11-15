@@ -1,4 +1,4 @@
-package org.ku.voicemap.config;
+package org.ku.voicemap.domain.auth.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

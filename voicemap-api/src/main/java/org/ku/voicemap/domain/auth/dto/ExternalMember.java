@@ -2,5 +2,5 @@ package org.ku.voicemap.domain.auth.dto;
 
 import org.ku.voicemap.domain.auth.AuthProvider;
 
-public record TokenRequest(AuthProvider provider, String providerToken) {
+public record ExternalMember(AuthProvider provider, String principal, String email) {
 }

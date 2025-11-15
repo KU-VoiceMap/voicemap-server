@@ -2,11 +2,14 @@ package org.ku.voicemap.domain.auth;
 
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.ku.voicemap.domain.auth.dto.ExternalMember;
 import org.ku.voicemap.domain.auth.dto.TokenResponse;
 import org.ku.voicemap.domain.auth.dto.TokenRequest;
 import org.ku.voicemap.domain.auth.service.AuthClientNotConnectedException;
 import org.ku.voicemap.domain.auth.service.AuthService;
+import org.ku.voicemap.domain.auth.service.ExternalMemberInfoProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,7 +29,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody TokenRequest request) {
         try {
-            TokenResponse response = authService.login(request.email(), request.provider(), request.principal());
+            TokenResponse response = authService.login(request.provider(), request.providerToken());
             return ResponseEntity.ok(response);
         } catch (AuthClientNotConnectedException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
