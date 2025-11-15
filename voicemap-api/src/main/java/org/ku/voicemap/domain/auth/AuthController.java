@@ -1,10 +1,10 @@
 package org.ku.voicemap.domain.auth;
 
 import lombok.RequiredArgsConstructor;
-import org.ku.voicemap.domain.member.model.Provider;
 import org.ku.voicemap.domain.auth.dto.AuthResponse;
 import org.ku.voicemap.domain.auth.dto.TokenRequest;
 import org.ku.voicemap.domain.auth.service.AuthService;
+import org.ku.voicemap.domain.member.model.Provider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;

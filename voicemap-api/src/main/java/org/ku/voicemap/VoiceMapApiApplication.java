@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties({GoogleProperties.class,JwtProperties.class})
+@EnableConfigurationProperties({GoogleProperties.class, JwtProperties.class})
 public class VoiceMapApiApplication {
 
     public static void main(String[] args) {

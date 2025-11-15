@@ -2,10 +2,10 @@ package org.ku.voicemap.domain.member.service;
 
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.ku.voicemap.domain.auth.dto.RegisterDto;
 import org.ku.voicemap.domain.member.entity.Member;
 import org.ku.voicemap.domain.member.entity.MemberDto;
 import org.ku.voicemap.domain.member.repository.MemberRepository;
-import org.ku.voicemap.domain.auth.dto.RegisterDto;
 import org.ku.voicemap.exception.member.MemberExistRegister;
 import org.ku.voicemap.exception.member.MemberNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
