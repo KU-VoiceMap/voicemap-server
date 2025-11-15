@@ -56,4 +56,9 @@ public class AuthClient {
     public boolean isConnected() {
         return isConnected;
     }
+
+    public void connect(String memberNumber) {
+        this.memberNumber = memberNumber;
+        this.isConnected = true;
+    }
 }

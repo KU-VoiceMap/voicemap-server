@@ -3,7 +3,6 @@ package org.ku.voicemap.domain.auth.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.ku.voicemap.domain.auth.AuthProvider;
 import org.ku.voicemap.domain.auth.dto.ExternalMember;
 import org.ku.voicemap.domain.auth.dto.TokenResponse;
 import org.ku.voicemap.domain.auth.entity.AuthClient;
@@ -17,25 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final List<ExternalMemberInfoProvider> externalMemberInfoProviders;
     private final TokenProvider tokenProvider;
     private final TokenRepository tokenRepository;
     private final AuthClientRepository authClientRepository;
 
     @Transactional
-    public TokenResponse login(AuthProvider provider, String providerToken) {
-        // TODO: 트랜잭션 분리
-        ExternalMemberInfoProvider externalMemberInfoProvider = externalMemberInfoProviders.stream()
-            .filter(memberInfoProvider -> memberInfoProvider.supports(provider))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("지원하지 않는 인증 제공자입니다."));
-        ExternalMember externalMember = externalMemberInfoProvider.provide(providerToken);
-
-        String email = externalMember.email();
-        String principal = externalMember.principal();
-        AuthClient authClient = authClientRepository.findByProviderAndPrincipal(provider, principal)
-            .orElseGet(() -> authClientRepository.save(new AuthClient(email, provider, principal)));
-
+    public TokenResponse login(ExternalMember externalMember) {
+        AuthClient authClient = authClientRepository.findByProviderAndPrincipal(externalMember.provider(), externalMember.principal())
+            .orElseGet(() -> authClientRepository.save(new AuthClient(externalMember.email(), externalMember.provider(), externalMember.principal())));
         if (!authClient.isConnected()) {
             throw new AuthClientNotConnectedException();
         }
