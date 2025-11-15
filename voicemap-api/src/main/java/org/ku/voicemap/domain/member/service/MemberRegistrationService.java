@@ -21,9 +21,11 @@ public class MemberRegistrationService {
 
     @Transactional
     public MemberRegisterResponse register(ExternalMember externalMember, String email, LocalDateTime now) {
-        String memberNumber = memberNumberGenerator.generate(now);
         Member member = memberRepository.findByEmail(email)
-            .orElseGet(() -> memberRepository.save(new Member(memberNumber, email)));
+            .orElseGet(() -> {
+                String memberNumber = memberNumberGenerator.generate(now);
+                return memberRepository.save(new Member(memberNumber, email));
+            });
         TokenResponse tokenResponse = authConnectService.connect(externalMember, member.getMemberNumber());
         return new MemberRegisterResponse(member.getMemberNumber(), tokenResponse.accessToken(), tokenResponse.refreshToken());
     }
