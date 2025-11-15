@@ -22,7 +22,7 @@ public class AuthConnectService {
             .orElseThrow(() -> new IllegalArgumentException("인증 정보가 존재하지 않습니다."));
         authClient.connect(memberNumber);
         authClientRepository.save(authClient);
-        Token token = tokenProvider.generateToken(memberNumber);
+        Token token = tokenProvider.generateToken(authClient);
         return new TokenResponse(token.getAccessToken(), token.getRefreshToken());
     }
 }

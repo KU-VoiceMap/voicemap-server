@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
 import org.ku.voicemap.domain.auth.config.JwtProperties;
+import org.ku.voicemap.domain.auth.entity.AuthClient;
 import org.ku.voicemap.domain.auth.entity.Token;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -32,32 +33,27 @@ public class TokenProvider {
         this.tokenVerifier = JWT.require(algorithm).withClaimPresence("memberNumber").build();
     }
 
-    public Token generateToken(String memberNumber) {
-        String accessToken = generateAccessToken(memberNumber);
-        return generateRefreshToken(accessToken, memberNumber);
+    public Token generateToken(AuthClient authClient) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime accessTokenExpireAt = now.plus(accessTokenExpireDuration);
+        LocalDateTime refreshTokenExpireAt = now.plus(refreshTokenExpireDuration);
+        String accessToken = generateToken(authClient.getMemberNumber(), "ACCESS", accessTokenExpireAt);
+        String refreshToken = generateToken(authClient.getMemberNumber(), "REFRESH", refreshTokenExpireAt);
+        return new Token(authClient, accessToken, refreshToken, now, refreshTokenExpireAt);
     }
 
-    public String generateAccessToken(String memberNumber) {
+    public String generateAccessToken(String memberNumber, LocalDateTime now) {
+        return generateToken(memberNumber, "ACCESS", now.plus(accessTokenExpireDuration));
+    }
+
+    private String generateToken(String memberNumber, String type, LocalDateTime expireAt) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expirationTime = now.plus(accessTokenExpireDuration);
         return JWT.create()
             .withClaim("memberNumber", memberNumber)
-            .withClaim("type", "ACCESS")
+            .withClaim("type", type)
             .withIssuedAt(now.toInstant(KST))
-            .withExpiresAt(expirationTime.toInstant(KST))
+            .withExpiresAt(expireAt.toInstant(KST))
             .sign(algorithm);
-    }
-
-    public Token generateRefreshToken(String accessToken, String memberNumber) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expirationTime = now.plus(refreshTokenExpireDuration);
-        String refreshToken = JWT.create()
-            .withClaim("memberNumber", memberNumber)
-            .withClaim("type", "REFRESH")
-            .withIssuedAt(now.toInstant(KST))
-            .withExpiresAt(expirationTime.toInstant(KST))
-            .sign(algorithm);
-        return new Token(accessToken, refreshToken, now, expirationTime);
     }
 
     public boolean validateToken(String token) {

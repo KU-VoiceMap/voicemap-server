@@ -27,7 +27,7 @@ public class AuthService {
         if (!authClient.isConnected()) {
             throw new AuthClientNotConnectedException();
         }
-        Token token = tokenProvider.generateToken(authClient.getMemberNumber());
+        Token token = tokenProvider.generateToken(authClient);
         tokenRepository.save(token);
         return new TokenResponse(token.getAccessToken(), token.getRefreshToken());
     }
@@ -48,7 +48,7 @@ public class AuthService {
             throw new InvalidTokenException();
         }
         String memberNumber = token.getAuthClient().getMemberNumber();
-        String newAccessToken = tokenProvider.generateAccessToken(memberNumber);
+        String newAccessToken = tokenProvider.generateAccessToken(memberNumber, now);
         token.updateAccessToken(newAccessToken);
         tokenRepository.save(token);
         return new TokenResponse(newAccessToken, token.getRefreshToken());
@@ -62,8 +62,7 @@ public class AuthService {
             throw new InvalidTokenException();
         }
         token.invalidate();
-        String memberNumber = token.getAuthClient().getMemberNumber();
-        Token newToken = tokenProvider.generateToken(memberNumber);
+        Token newToken = tokenProvider.generateToken(token.getAuthClient());
         tokenRepository.saveAll(List.of(token, newToken));
         return new TokenResponse(newToken.getAccessToken(), newToken.getRefreshToken());
     }

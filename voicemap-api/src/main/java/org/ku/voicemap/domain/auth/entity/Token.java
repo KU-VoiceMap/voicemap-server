@@ -42,8 +42,9 @@ public class Token {
     @Column(nullable = false)
     private Boolean reissuable;
 
-    public Token(String accessToken, String refreshToken, LocalDateTime createdAt, LocalDateTime expireAt) {
+    public Token(AuthClient authClient, String accessToken, String refreshToken, LocalDateTime createdAt, LocalDateTime expireAt) {
         this.id = UUID.randomUUID();
+        this.authClient = authClient;
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.expireAt = expireAt;
