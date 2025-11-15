@@ -1,6 +1,7 @@
 package org.ku.voicemap.domain.member;
 
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.auth.dto.ExternalMember;
 import org.ku.voicemap.domain.auth.service.ExternalMemberInfoResolver;
@@ -28,6 +29,6 @@ public class MemberRegistrationController {
     public ResponseEntity<MemberRegisterResponse> register(@Valid @RequestBody MemberRegisterRequest request) {
         // TODO: 세션을 도입하여 두 번 호출하지 않도록 개선한다.
         ExternalMember externalMember = externalMemberInfoResolver.resolve(request.provider(), request.providerToken());
-        return ResponseEntity.ok(memberRegistrationService.register(externalMember, request.email()));
+        return ResponseEntity.ok(memberRegistrationService.register(externalMember, request.email(), LocalDateTime.now()));
     }
 }

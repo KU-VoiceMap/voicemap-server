@@ -30,7 +30,8 @@ public class Member {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    public Member(String email) {
+    public Member(String memberNumber, String email) {
+        this.memberNumber = memberNumber;
         this.email = email;
         this.createdAt = LocalDateTime.now();
     }
