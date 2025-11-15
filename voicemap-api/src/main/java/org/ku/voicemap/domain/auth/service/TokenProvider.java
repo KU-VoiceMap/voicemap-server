@@ -37,21 +37,20 @@ public class TokenProvider {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime accessTokenExpireAt = now.plus(accessTokenExpireDuration);
         LocalDateTime refreshTokenExpireAt = now.plus(refreshTokenExpireDuration);
-        String accessToken = generateToken(authClient.getMemberNumber(), "ACCESS", accessTokenExpireAt);
-        String refreshToken = generateToken(authClient.getMemberNumber(), "REFRESH", refreshTokenExpireAt);
+        String accessToken = generateToken(authClient.getMemberNumber(), "ACCESS", now, accessTokenExpireAt);
+        String refreshToken = generateToken(authClient.getMemberNumber(), "REFRESH", now, refreshTokenExpireAt);
         return new Token(authClient, accessToken, refreshToken, now, refreshTokenExpireAt);
     }
 
     public String generateAccessToken(String memberNumber, LocalDateTime now) {
-        return generateToken(memberNumber, "ACCESS", now.plus(accessTokenExpireDuration));
+        return generateToken(memberNumber, "ACCESS", now, now.plus(accessTokenExpireDuration));
     }
 
-    private String generateToken(String memberNumber, String type, LocalDateTime expireAt) {
-        LocalDateTime now = LocalDateTime.now();
+    private String generateToken(String memberNumber, String type, LocalDateTime issuedAt, LocalDateTime expireAt) {
         return JWT.create()
             .withClaim("memberNumber", memberNumber)
             .withClaim("type", type)
-            .withIssuedAt(now.toInstant(KST))
+            .withIssuedAt(issuedAt.toInstant(KST))
             .withExpiresAt(expireAt.toInstant(KST))
             .sign(algorithm);
     }
