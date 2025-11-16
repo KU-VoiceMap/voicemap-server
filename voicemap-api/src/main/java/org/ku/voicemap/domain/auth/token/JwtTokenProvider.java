@@ -1,4 +1,4 @@
-package org.ku.voicemap.domain.auth.service;
+package org.ku.voicemap.domain.auth.token;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -10,14 +10,12 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
 import org.ku.voicemap.domain.auth.config.JwtProperties;
-import org.ku.voicemap.domain.auth.entity.AuthClient;
-import org.ku.voicemap.domain.auth.entity.Token;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component
 @EnableConfigurationProperties(JwtProperties.class)
-public class TokenProvider {
+public class JwtTokenProvider implements TokenProvider {
 
     private static final ZoneOffset KST = ZoneOffset.ofHours(9);
 
@@ -26,24 +24,26 @@ public class TokenProvider {
     private final Duration refreshTokenExpireDuration;
     private final JWTVerifier tokenVerifier;
 
-    public TokenProvider(JwtProperties jwtProperties) {
+    public JwtTokenProvider(JwtProperties jwtProperties) {
         this.algorithm = Algorithm.HMAC256(jwtProperties.secretKey());
         this.accessTokenExpireDuration = jwtProperties.accessTokenExpireDuration();
         this.refreshTokenExpireDuration = jwtProperties.refreshTokenExpireDuration();
         this.tokenVerifier = JWT.require(algorithm).withClaimPresence("memberNumber").build();
     }
 
-    public Token generateToken(AuthClient authClient) {
-        LocalDateTime now = LocalDateTime.now();
+    @Override
+    public TokenPair generateTokenPair(String memberNumber, LocalDateTime now) {
         LocalDateTime accessTokenExpireAt = now.plus(accessTokenExpireDuration);
         LocalDateTime refreshTokenExpireAt = now.plus(refreshTokenExpireDuration);
-        String accessToken = generateToken(authClient.getMemberNumber(), "ACCESS", now, accessTokenExpireAt);
-        String refreshToken = generateToken(authClient.getMemberNumber(), "REFRESH", now, refreshTokenExpireAt);
-        return new Token(authClient, accessToken, refreshToken, now, refreshTokenExpireAt);
+        String accessToken = generateToken(memberNumber, "ACCESS", now, accessTokenExpireAt);
+        String refreshToken = generateToken(memberNumber, "REFRESH", now, refreshTokenExpireAt);
+        return new TokenPair(accessToken, refreshToken, refreshTokenExpireAt);
     }
 
+    @Override
     public String generateAccessToken(String memberNumber, LocalDateTime now) {
-        return generateToken(memberNumber, "ACCESS", now, now.plus(accessTokenExpireDuration));
+        LocalDateTime accessTokenExpireAt = now.plus(accessTokenExpireDuration);
+        return generateToken(memberNumber, "ACCESS", now, accessTokenExpireAt);
     }
 
     private String generateToken(String memberNumber, String type, LocalDateTime issuedAt, LocalDateTime expireAt) {
@@ -55,6 +55,7 @@ public class TokenProvider {
             .sign(algorithm);
     }
 
+    @Override
     public boolean validateToken(String token) {
         try {
             DecodedJWT decodedToken = tokenVerifier.verify(token);

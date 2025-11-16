@@ -9,6 +9,8 @@ import org.ku.voicemap.domain.auth.entity.AuthClient;
 import org.ku.voicemap.domain.auth.entity.AuthClientRepository;
 import org.ku.voicemap.domain.auth.entity.Token;
 import org.ku.voicemap.domain.auth.entity.TokenRepository;
+import org.ku.voicemap.domain.auth.token.TokenPair;
+import org.ku.voicemap.domain.auth.token.TokenProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,15 +23,15 @@ public class AuthService {
     private final AuthClientRepository authClientRepository;
 
     @Transactional
-    public TokenResponse login(ExternalMember externalMember) {
+    public TokenResponse login(ExternalMember externalMember, LocalDateTime now) {
         AuthClient authClient = authClientRepository.findByProviderAndPrincipal(externalMember.provider(), externalMember.principal())
             .orElseGet(() -> authClientRepository.save(new AuthClient(externalMember.email(), externalMember.provider(), externalMember.principal())));
         if (!authClient.isConnected()) {
             throw new AuthClientNotConnectedException();
         }
-        Token token = tokenProvider.generateToken(authClient);
-        tokenRepository.save(token);
-        return new TokenResponse(token.getAccessToken(), token.getRefreshToken());
+        TokenPair tokenPair = tokenProvider.generateTokenPair(authClient.getMemberNumber(), now);
+        tokenRepository.save(new Token(authClient, tokenPair.accessToken(), tokenPair.refreshToken(), now, tokenPair.expireAt()));
+        return new TokenResponse(tokenPair.accessToken(), tokenPair.refreshToken());
     }
 
     @Transactional
@@ -62,8 +64,11 @@ public class AuthService {
             throw new InvalidTokenException();
         }
         token.invalidate();
-        Token newToken = tokenProvider.generateToken(token.getAuthClient());
-        tokenRepository.saveAll(List.of(token, newToken));
-        return new TokenResponse(newToken.getAccessToken(), newToken.getRefreshToken());
+        AuthClient authClient = token.getAuthClient();
+        TokenPair tokenPair = tokenProvider.generateTokenPair(authClient.getMemberNumber(), now);
+        tokenRepository.saveAll(
+            List.of(token, new Token(authClient, tokenPair.accessToken(), tokenPair.refreshToken(), now, tokenPair.expireAt()))
+        );
+        return new TokenResponse(tokenPair.accessToken(), tokenPair.refreshToken());
     }
 }

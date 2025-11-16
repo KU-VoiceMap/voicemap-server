@@ -58,6 +58,9 @@ public class AuthClient {
     }
 
     public void connect(String memberNumber) {
+        if (isConnected() && !this.memberNumber.equals(memberNumber)) {
+            throw new IllegalStateException("이미 다른 회원에 연결되었습니다.");
+        }
         this.memberNumber = memberNumber;
         this.isConnected = true;
     }

@@ -26,7 +26,7 @@ public class MemberRegistrationService {
                 String memberNumber = memberNumberGenerator.generate(now);
                 return memberRepository.save(new Member(memberNumber, email));
             });
-        TokenResponse tokenResponse = authConnectService.connect(externalMember, member.getMemberNumber());
+        TokenResponse tokenResponse = authConnectService.connect(externalMember, member.getMemberNumber(), now);
         return new MemberRegisterResponse(member.getMemberNumber(), tokenResponse.accessToken(), tokenResponse.refreshToken());
     }
 }
