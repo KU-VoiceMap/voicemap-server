@@ -42,7 +42,6 @@ spring:
       enabled: true
       path: /h2-console
 
----
 spring:
   config:
     activate:
@@ -53,7 +52,6 @@ spring:
         show_sql: false
         format_sql: false
 
-
 voicemap:
   datasource:
     driver-class-name: # TODO: add properties
@@ -61,3 +59,13 @@ voicemap:
     username:
     password:
     pool-name: voicemap-hikari-pool
+
+auth:
+  google:
+    client-id:
+
+jwt:
+  secret: secretsecretsecretsecret
+  access-token-expiration: 1h
+  refresh-token-expiration: 7d
+
