@@ -2,12 +2,12 @@ package org.ku.voicemap.domain.ephemeralToken.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.ku.voicemap.config.EphemeralProperties;
+import org.ku.voicemap.domain.ephemeralToken.config.EphemeralProperties;
+import org.ku.voicemap.domain.ephemeralToken.component.PythonExecutor;
 import org.ku.voicemap.domain.ephemeralToken.dto.CreateEphemeralRequest;
 import org.ku.voicemap.domain.ephemeralToken.dto.EphemeralTokenResponse;
 import org.ku.voicemap.domain.ephemeralToken.entity.EphemeralToken;
 import org.ku.voicemap.domain.ephemeralToken.repository.EphemeralTokenRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service

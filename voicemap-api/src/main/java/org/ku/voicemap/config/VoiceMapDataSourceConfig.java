@@ -20,6 +20,6 @@ public class VoiceMapDataSourceConfig {
 
     @Bean
     public HikariDataSource voiceMapDataSource(@Qualifier(VOICEMAP_HIKARI_CONFIG) HikariConfig hikariConfig){
-        return new HikariDataSource(voiceMapHikariConfig());
+        return new HikariDataSource(hikariConfig);
     }
 }
