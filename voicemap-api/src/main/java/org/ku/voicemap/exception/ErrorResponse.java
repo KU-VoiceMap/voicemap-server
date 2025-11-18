@@ -18,3 +18,4 @@ public class ErrorResponse {
         this(e.getClass().getSimpleName(), e.getMessage());
     }
 }
+

@@ -1,8 +1,12 @@
 server.port: 8080
-
 spring:
-  application:
-    name: voicemap-api
+  profiles:
+    active: dev
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${db-url}
+    username:  ${db-user}
+    password:  ${db-password}
 
   jpa:
     properties:
@@ -29,7 +33,6 @@ voicemap:
     password:
     pool-name: voicemap-hikari-pool
 
----
 spring:
   config:
     activate:
@@ -68,4 +71,7 @@ jwt:
   secret: secretsecretsecretsecret
   access-token-expiration: 1h
   refresh-token-expiration: 7d
-
+python:
+  apikey: ${apiKey}
+  script:
+    resource-path: classpath:getKey.py

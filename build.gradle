@@ -40,7 +40,7 @@ subprojects {
         implementation 'org.apache.commons:commons-lang3:3.19.0'
     }
 
-    tasks.named('test') {
+ tasks.named('test') {
         useJUnitPlatform()
     }
 }
