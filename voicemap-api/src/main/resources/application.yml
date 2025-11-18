@@ -3,30 +3,79 @@ server.port: 8080
 spring:
   application:
     name: voicemap-api
-  profiles:
-    active: dev
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/11111111
-    username: root
-    password: 111111
+
   jpa:
-    hibernate:
-      ddl-auto: validate
     properties:
       hibernate:
+        show_sql: true
         format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
-    show-sql: false
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id:
-            client-secret:
-            scope:
-              - email
+    hibernate:
+      ddl-auto: validate
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 
+logging:
+  level:
+    org.hibernate:
+      SQL: DEBUG
+
+voicemap:
+  datasource:
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:mem:voicemap;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    pool-name: voicemap-hikari-pool
 
 ---
+spring:
+  config:
+    activate:
+      on-profile: local
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+auth:
+  google:
+    client-id:
+
+jwt:
+  secret: secretsecretsecretsecret
+  access-token-expiration: 1h
+  refresh-token-expiration: 7d
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: false
+
+voicemap:
+  datasource:
+    driver-class-name: # TODO: add properties
+    jdbc-url:
+    username:
+    password:
+    pool-name: voicemap-hikari-pool
+
+auth:
+  google:
+    client-id:
+
+jwt:
+  secret: secretsecretsecretsecret
+  access-token-expiration: 1h
+  refresh-token-expiration: 7d
