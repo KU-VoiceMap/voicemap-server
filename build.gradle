@@ -27,12 +27,20 @@ subprojects {
         plugin("io.spring.dependency-management")
     }
     dependencies {
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
         implementation 'org.springframework.boot:spring-boot-starter'
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    }
-}
 
-tasks.named('test') {
-    useJUnitPlatform()
+        annotationProcessor 'org.projectlombok:lombok'
+        compileOnly 'org.projectlombok:lombok'
+        testCompileOnly 'org.projectlombok:lombok'
+
+        implementation 'org.apache.commons:commons-lang3:3.19.0'
+    }
+
+ tasks.named('test') {
+        useJUnitPlatform()
+    }
 }
