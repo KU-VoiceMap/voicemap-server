@@ -42,17 +42,6 @@ spring:
       enabled: true
       path: /h2-console
 
-auth:
-  google:
-    client-id:
-
-jwt:
-  secret: secretsecretsecretsecret
-  access-token-expiration: 1h
-  refresh-token-expiration: 7d
-
----
-
 spring:
   config:
     activate:
@@ -79,3 +68,4 @@ jwt:
   secret: secretsecretsecretsecret
   access-token-expiration: 1h
   refresh-token-expiration: 7d
+
