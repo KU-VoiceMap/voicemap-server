@@ -1,4 +1,4 @@
-package org.ku.voicemap.domain.script;
+package org.ku.voicemap.domain.script.entity;
 
 import io.micrometer.common.util.StringUtils;
 import jakarta.persistence.Column;
@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,7 +31,7 @@ public class Script {
     private Long id;
 
     @Column(name = "chat_id", nullable = false)
-    private Long chatId;
+    private UUID chatId;
 
     @Column(name = "question", nullable = false, columnDefinition = "TEXT")
     private String question;
@@ -47,10 +48,11 @@ public class Script {
     @Column(name = "answered_at", nullable = true)
     private LocalDateTime answeredAt;
 
-    public Script(String question, LocalDateTime createdAt) {
+    public Script(UUID chatId, String question, LocalDateTime createdAt) {
         if (StringUtils.isBlank(question)) {
             throw new IllegalArgumentException("질문은 필수 입력 사항입니다.");
         }
+        this.chatId = chatId;
         this.question = question;
         this.createdAt = createdAt;
     }

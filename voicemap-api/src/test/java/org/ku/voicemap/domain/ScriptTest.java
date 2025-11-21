@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.ku.voicemap.domain.script.Script;
+import org.ku.voicemap.domain.script.entity.Script;
 
 class ScriptTest {
 
