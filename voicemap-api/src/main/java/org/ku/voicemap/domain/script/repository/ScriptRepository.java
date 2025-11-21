@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ScriptRepository extends JpaRepository<Script, Long> {
 
-    List<Script> findAllByChatIdOrderByCreatedAtDesc(UUID chatId);
+    List<Script> findAllByChatIdOrderByCreatedAtAsc(UUID chatId);
 
     List<Script> findAllByChatIdOrderByCreatedAtDesc(UUID chatId, Pageable pageable);
 

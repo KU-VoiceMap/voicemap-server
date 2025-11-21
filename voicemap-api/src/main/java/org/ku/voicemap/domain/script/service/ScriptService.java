@@ -40,7 +40,7 @@ public class ScriptService {
 
     @Transactional(readOnly = true)
     public ScriptGetResponse getScriptByChatId(UUID chatId) {
-        List<Script> scripts = scriptRepository.findAllByChatIdOrderByCreatedAtDesc(chatId);
+        List<Script> scripts = scriptRepository.findAllByChatIdOrderByCreatedAtAsc(chatId);
         List<ScriptDto> scriptDtos = scripts.stream()
             .map(ScriptDto::toDto)
             .toList();
