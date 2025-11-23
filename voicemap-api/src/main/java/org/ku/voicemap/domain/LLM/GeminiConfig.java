@@ -1,7 +1,7 @@
 package org.ku.voicemap.domain.LLM;
 
-import com.google.api.client.util.Value;
 import com.google.genai.Client;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
