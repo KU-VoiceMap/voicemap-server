@@ -1,3 +1,6 @@
+ext {
+    set('springAiVersion', "1.0.0-M1") // 최신 버전 확인 필요
+}
 dependencies {
     // API
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -13,8 +16,22 @@ dependencies {
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'com.mysql:mysql-connector-j'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    //llm
+    implementation 'com.google.genai:google-genai:1.8.0'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+    }
 }
 
 tasks.bootJar {
     enabled = true
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
 }
