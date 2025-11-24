@@ -1,4 +1,4 @@
-package org.ku.voicemap.domain.LLM.dto;
+package org.ku.voicemap.domain.llm.dto;
 
 import java.util.List;
 

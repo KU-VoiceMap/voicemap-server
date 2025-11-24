@@ -1,4 +1,4 @@
-package org.ku.voicemap.domain.LLM.service;
+package org.ku.voicemap.domain.llm.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.Client;
@@ -9,10 +9,9 @@ import com.google.genai.types.Type.Known;
 import java.util.Arrays;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.ku.voicemap.domain.LLM.dto.ScriptSummaryDto;
-import org.ku.voicemap.domain.LLM.dto.ScriptToLLMDto;
+import org.ku.voicemap.domain.llm.dto.ScriptSummaryDto;
+import org.ku.voicemap.domain.llm.dto.ScriptToLLMDto;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 @Component
 @RequiredArgsConstructor
@@ -51,7 +50,7 @@ public class GeminiService implements LlmService{
             .build();
         GenerateContentResponse response = client.models.generateContent(
             "gemini-2.5-flash",
-            howTo + scripts,
+            howTo + scripts.Scripts(),
             config
         );
         String jsonString = response.text();
