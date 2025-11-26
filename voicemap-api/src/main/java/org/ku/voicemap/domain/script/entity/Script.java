@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
     catalog = "voicemap",
     name = "script",
     indexes = {
-        @Index(name = "idx_script_chat_id", columnList = "chat_id")
+        @Index(name = "idx_script_chat_id", columnList = "chat_id, id")
     }
 )
 @Entity

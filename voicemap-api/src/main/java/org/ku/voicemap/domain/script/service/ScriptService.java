@@ -10,8 +10,6 @@ import org.ku.voicemap.domain.script.dto.ScriptGetPagination;
 import org.ku.voicemap.domain.script.dto.ScriptGetResponse;
 import org.ku.voicemap.domain.script.entity.Script;
 import org.ku.voicemap.domain.script.repository.ScriptRepository;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,27 +46,26 @@ public class ScriptService {
     }
 
     @Transactional(readOnly = true)
-    public ScriptGetPagination getScriptByChatIdPagination(UUID chatId, LocalDateTime lastCreatedAt, int size) {
-        Pageable pageable = PageRequest.of(0, size + 1);
-        List<Script> scripts;
-        if (lastCreatedAt == null) {
-            scripts = scriptRepository.findAllByChatIdOrderByCreatedAtDesc(chatId, pageable);
-        } else {
-            scripts = scriptRepository.findByChatIdAndCreatedAtLessThanOrderByCreatedAtDesc(
-                chatId, lastCreatedAt, pageable);
-        }
+    public ScriptGetPagination getScriptByChatIdPagination(UUID chatId, Long lastId, int size) {
+        int fetchSize = size + 1;
+
+        List<Script> scripts = scriptRepository.findScriptsPagination(chatId, lastId, fetchSize);
+
         boolean isNext = false;
         if (scripts.size() > size) {
             isNext = true;
             scripts.remove(size);
         }
+
         List<ScriptDto> scriptDtos = scripts.stream()
             .map(ScriptDto::toDto)
             .toList();
-        LocalDateTime nextCursor = null;
+
+        Long nextCursor = null;
         if (!scriptDtos.isEmpty()) {
-            nextCursor = scriptDtos.get(scriptDtos.size() - 1).createdAt();
+            nextCursor = scriptDtos.get(scriptDtos.size() - 1).id();
         }
+
         return new ScriptGetPagination(scriptDtos, nextCursor, isNext);
     }
 

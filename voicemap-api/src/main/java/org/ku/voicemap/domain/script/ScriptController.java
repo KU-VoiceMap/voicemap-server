@@ -47,12 +47,9 @@ public class ScriptController {
     }
 
     @GetMapping("/chat/{chatId}")
-    public ResponseEntity<ScriptGetPagination> getScriptsByChatIdPagination(@PathVariable UUID chatId,
-                                                                            @RequestParam(required = false) LocalDateTime lastCreatedAt,
-                                                                            @RequestParam(defaultValue = "10") int size
-    ) {
-        return ResponseEntity.ok(
-            scriptService.getScriptByChatIdPagination(chatId, lastCreatedAt, size)
-        );
+    public ResponseEntity<ScriptGetPagination> getScriptsPagination(@PathVariable UUID chatId,
+                                                                    @RequestParam(required = false) Long lastId,
+                                                                    @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(scriptService.getScriptByChatIdPagination(chatId, lastId, size));
     }
 }
