@@ -1,13 +1,6 @@
 server.port: 8080
-spring:
-  profiles:
-    active: dev
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${db-url}
-    username:  ${db-user}
-    password:  ${db-password}
 
+spring:
   jpa:
     properties:
       hibernate:
@@ -15,10 +8,6 @@ spring:
         format_sql: true
     hibernate:
       ddl-auto: validate
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
 
 logging:
   level:
@@ -33,6 +22,18 @@ voicemap:
     password:
     pool-name: voicemap-hikari-pool
 
+
+auth:
+  google:
+    client-id: test
+
+jwt:
+  secret-key: secretsecretsecretsecretsecretsecretsecretsecret
+  access-token-expire-duration: 1h
+  refresh-token-expire-duration: 7d
+
+---
+
 spring:
   config:
     activate:
@@ -44,6 +45,8 @@ spring:
     console:
       enabled: true
       path: /h2-console
+
+---
 
 spring:
   config:
@@ -62,16 +65,3 @@ voicemap:
     username:
     password:
     pool-name: voicemap-hikari-pool
-
-auth:
-  google:
-    client-id:
-
-jwt:
-  secret: secretsecretsecretsecret
-  access-token-expiration: 1h
-  refresh-token-expiration: 7d
-python:
-  apikey: ${apiKey}
-  script:
-    resource-path: classpath:getKey.py
