@@ -47,6 +47,7 @@ public class ConversationOutboundService {
         String agentTranscript = transcriptManager.getTranscript(sessionId, ConversationRole.AGENT);
         log.info("[USER]: {}", userTranscript);
         log.info("[AGENT]: {}", agentTranscript);
+        transcriptManager.clearTranscript(sessionId);
         // TODO: Script 저장
         send(sessionId, ServerMessageType.TURN_COMPLETED, Collections.emptyMap());
     }

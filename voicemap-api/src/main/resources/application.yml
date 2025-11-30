@@ -32,6 +32,9 @@ jwt:
   access-token-expire-duration: 1h
   refresh-token-expire-duration: 7d
 
+ai:
+  api-key: apikey
+  system-instruction: you are kind.
 ---
 
 spring:

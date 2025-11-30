@@ -4,15 +4,10 @@ import java.util.List;
 
 public record SetupMessage(Setup setup) {
 
-    public static SetupMessage create() {
+    public static SetupMessage create(String systemInstruction) {
         return new SetupMessage(new Setup(
             "models/gemini-2.5-flash-native-audio-preview-09-2025",
-            new SystemInstruction(List.of(new Part(
-                """
-                ###**0. Language Consistency (CRITICAL):**
-                **You MUST respond in Korean.** Always maintain the conversation in the user's language (Korean), regardless of the prompt language.
-               """.trim()
-            ))),
+            new SystemInstruction(List.of(new Part(systemInstruction))),
             new GenerationConfig(List.of("AUDIO")),
             new RealtimeInputConfig(new AutomaticActivityDetection(false, 100, 500)),
             new AudioTranscriptionConfig(),
