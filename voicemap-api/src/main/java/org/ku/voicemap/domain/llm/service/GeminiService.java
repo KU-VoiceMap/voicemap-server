@@ -10,12 +10,11 @@ import java.util.Arrays;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.llm.dto.ScriptSummaryDto;
-import org.ku.voicemap.domain.llm.dto.ScriptToLLMDto;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class GeminiService implements LlmService{
+public class GeminiService {
 
     private final Client client;
     private final ObjectMapper objectMapper;
@@ -23,8 +22,7 @@ public class GeminiService implements LlmService{
     private static final String toKeyword="extract important keywords from the content";
     private static final String howTo="This is the conversation we've had up to this point, so we can summarize it";
 
-    @Override
-    public ScriptSummaryDto summaryScript(ScriptToLLMDto scripts){
+    public ScriptSummaryDto summaryScript(String scripts){
 
         Schema schema = Schema.builder()
             .type(Known.OBJECT)
@@ -50,7 +48,7 @@ public class GeminiService implements LlmService{
             .build();
         GenerateContentResponse response = client.models.generateContent(
             "gemini-2.5-flash",
-            howTo + scripts.Scripts(),
+            howTo + scripts,
             config
         );
         String jsonString = response.text();
