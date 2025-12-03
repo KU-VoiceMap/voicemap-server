@@ -39,30 +39,17 @@ public class Script {
     @Column(name = "answer", nullable = true, columnDefinition = "TEXT")
     private String answer;
 
-    @Column(name = "is_answered", nullable = false)
-    private boolean isAnswered = false;
-
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "answered_at", nullable = true)
-    private LocalDateTime answeredAt;
-
-    public Script(UUID chatId, String question, LocalDateTime createdAt) {
-        if (StringUtils.isBlank(question)) {
-            throw new IllegalArgumentException("질문은 필수 입력 사항입니다.");
-        }
+    public Script(UUID chatId, String question, String answer) {
+//        if (StringUtils.isBlank(question)) {
+//            throw new IllegalArgumentException("질문은 필수 입력 사항입니다.");
+//        }
         this.chatId = chatId;
         this.question = question;
-        this.createdAt = createdAt;
+        this.answer=answer;
+        this.createdAt = LocalDateTime.now();
     }
 
-    public void answer(String answer, LocalDateTime answeredAt) {
-        if (isAnswered) {
-            throw new IllegalStateException("이미 완성된 문답입니다.");
-        }
-        this.answer = answer;
-        this.isAnswered = true;
-        this.answeredAt = answeredAt;
-    }
 }

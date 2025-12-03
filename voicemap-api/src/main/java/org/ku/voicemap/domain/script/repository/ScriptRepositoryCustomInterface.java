@@ -5,5 +5,5 @@ import java.util.UUID;
 import org.ku.voicemap.domain.script.entity.Script;
 
 public interface ScriptRepositoryCustomInterface {
-    List<Script> findScriptsPagination(UUID chatId, Long lastId, int Size);
+    List<Script> findScriptsPagination(UUID chatId, Long lastId, int size);
 }

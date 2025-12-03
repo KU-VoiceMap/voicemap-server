@@ -4,10 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.ku.voicemap.domain.script.dto.ScriptCreateResponse;
 import org.ku.voicemap.domain.script.dto.ScriptDto;
 import org.ku.voicemap.domain.script.dto.ScriptGetPagination;
-import org.ku.voicemap.domain.script.dto.ScriptGetResponse;
 import org.ku.voicemap.domain.script.entity.Script;
 import org.ku.voicemap.domain.script.repository.ScriptRepository;
 import org.springframework.stereotype.Service;
@@ -20,29 +18,28 @@ public class ScriptService {
     private final ScriptRepository scriptRepository;
 
     @Transactional
-    public ScriptCreateResponse createScript(UUID chatId, String question, LocalDateTime createdAt) {
-        Script script = new Script(chatId, question, createdAt);
+    public ScriptDto createScript(UUID chatId, String question, String answer) {
+        Script script = new Script(chatId, question, answer);
         scriptRepository.save(script);
-        return new ScriptCreateResponse(script.getId(), script.isAnswered(),
-            script.getCreatedAt(), script.getAnsweredAt());
-    }
-
-    @Transactional
-    public ScriptCreateResponse answerScript(Long scriptId, String answer, LocalDateTime answeredAt) {
-        Script script = scriptRepository.findById(scriptId).
-            orElseThrow(IllegalArgumentException::new);
-        script.answer(answer, answeredAt);
-        return new ScriptCreateResponse(script.getId(), script.isAnswered(),
-            script.getCreatedAt(), script.getAnsweredAt());
+        return ScriptDto.toDto(script);
     }
 
     @Transactional(readOnly = true)
-    public ScriptGetResponse getScriptByChatId(UUID chatId) {
+    public String getScriptByChatId(UUID chatId) {
         List<Script> scripts = scriptRepository.findAllByChatIdOrderByCreatedAtAsc(chatId);
-        List<ScriptDto> scriptDtos = scripts.stream()
-            .map(ScriptDto::toDto)
-            .toList();
-        return new ScriptGetResponse(scriptDtos);
+        if (scripts.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (Script script : scripts) {
+            sb.append("question: ").append(script.getQuestion()).append("\n");
+            if (script.getAnswer() != null && !script.getAnswer().isBlank()) {
+                sb.append("answer: ").append(script.getAnswer()).append("\n");
+            }
+            sb.append("\n");
+        }
+
+        return sb.toString();
     }
 
     @Transactional(readOnly = true)

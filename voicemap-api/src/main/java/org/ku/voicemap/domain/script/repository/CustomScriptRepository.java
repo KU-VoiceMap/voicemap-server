@@ -16,7 +16,7 @@ public class CustomScriptRepository implements ScriptRepositoryCustomInterface {
     private final EntityManager em;
 
     @Override
-    public List<Script> findScriptsPagination(UUID chatId, Long lastId, int Size) {
+    public List<Script> findScriptsPagination(UUID chatId, Long lastId, int size) {
 
         String jpql;
 
@@ -28,7 +28,7 @@ public class CustomScriptRepository implements ScriptRepositoryCustomInterface {
 
         TypedQuery<Script> query = em.createQuery(jpql, Script.class)
             .setParameter("chatId", chatId)
-            .setMaxResults(Size);
+            .setMaxResults(size);
 
         if (lastId != null) {
             query.setParameter("lastId", lastId);

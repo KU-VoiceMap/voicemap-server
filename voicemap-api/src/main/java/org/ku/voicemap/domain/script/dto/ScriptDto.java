@@ -8,9 +8,7 @@ public record ScriptDto(Long id,
                         UUID chatId,
                         String question,
                         String answer,
-                        boolean isAnswered,
-                        LocalDateTime createdAt,
-                        LocalDateTime answeredAt) {
+                        LocalDateTime createdAt) {
 
     public static ScriptDto toDto(Script script) {
         return new ScriptDto(
@@ -18,9 +16,7 @@ public record ScriptDto(Long id,
             script.getChatId(),
             script.getQuestion(),
             script.getAnswer(),
-            script.isAnswered(),
-            script.getCreatedAt(),
-            script.getAnsweredAt()
+            script.getCreatedAt()
         );
     }
 }

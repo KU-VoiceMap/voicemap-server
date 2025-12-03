@@ -3,9 +3,6 @@ package org.ku.voicemap.domain.script;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.ku.voicemap.domain.script.dto.ScriptAnswerRequest;
-import org.ku.voicemap.domain.script.dto.ScriptCreateRequest;
-import org.ku.voicemap.domain.script.dto.ScriptCreateResponse;
 import org.ku.voicemap.domain.script.dto.ScriptGetPagination;
 import org.ku.voicemap.domain.script.service.ScriptService;
 import org.springframework.http.ResponseEntity;
@@ -24,27 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class ScriptController {
 
     private final ScriptService scriptService;
-
-    @PostMapping
-    public ResponseEntity<ScriptCreateResponse> createScript(@RequestBody ScriptCreateRequest request) {
-        ScriptCreateResponse response = scriptService.createScript(
-            request.chatId(),
-            request.question(),
-            LocalDateTime.now()
-        );
-        return ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/{scriptId}/answer")
-    public ResponseEntity<ScriptCreateResponse> answerScript(@PathVariable Long scriptId,
-                                                             @RequestBody ScriptAnswerRequest request) {
-        ScriptCreateResponse response = scriptService.answerScript(
-            scriptId,
-            request.answer(),
-            LocalDateTime.now()
-        );
-        return ResponseEntity.ok(response);
-    }
 
     @GetMapping("/chat/{chatId}")
     public ResponseEntity<ScriptGetPagination> getScriptsPagination(@PathVariable UUID chatId,
