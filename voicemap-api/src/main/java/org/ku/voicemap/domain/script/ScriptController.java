@@ -1,5 +1,6 @@
 package org.ku.voicemap.domain.script;
 
+import jakarta.validation.constraints.Min;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.script.dto.ScriptGetPagination;
@@ -21,7 +22,7 @@ public class ScriptController {
     @GetMapping("/chat/{chatId}")
     public ResponseEntity<ScriptGetPagination> getScriptsPagination(@PathVariable UUID chatId,
                                                                     @RequestParam(required = false) Long lastId,
-                                                                    @RequestParam(defaultValue = "10") int size) {
+                                                                    @RequestParam(defaultValue = "10") @Min(1) int size) {
         return ResponseEntity.ok(scriptService.getScriptByChatIdPagination(chatId, lastId, size));
     }
 }
