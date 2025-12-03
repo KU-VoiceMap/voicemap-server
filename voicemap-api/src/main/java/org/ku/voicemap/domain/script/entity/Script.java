@@ -1,6 +1,5 @@
-package org.ku.voicemap.domain.script;
+package org.ku.voicemap.domain.script.entity;
 
-import io.micrometer.common.util.StringUtils;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -9,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
     catalog = "voicemap",
     name = "script",
     indexes = {
-        @Index(name = "idx_script_chat_id", columnList = "chat_id")
+        @Index(name = "idx_script_chat_id", columnList = "chat_id, id")
     }
 )
 @Entity
@@ -30,7 +30,7 @@ public class Script {
     private Long id;
 
     @Column(name = "chat_id", nullable = false)
-    private Long chatId;
+    private UUID chatId;
 
     @Column(name = "question", nullable = false, columnDefinition = "TEXT")
     private String question;
@@ -38,29 +38,14 @@ public class Script {
     @Column(name = "answer", nullable = true, columnDefinition = "TEXT")
     private String answer;
 
-    @Column(name = "is_answered", nullable = false)
-    private boolean isAnswered = false;
-
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "answered_at", nullable = true)
-    private LocalDateTime answeredAt;
-
-    public Script(String question, LocalDateTime createdAt) {
-        if (StringUtils.isBlank(question)) {
-            throw new IllegalArgumentException("질문은 필수 입력 사항입니다.");
-        }
+    public Script(UUID chatId, String question, String answer) {
+        this.chatId = chatId;
         this.question = question;
-        this.createdAt = createdAt;
+        this.answer = answer;
+        this.createdAt = LocalDateTime.now();
     }
 
-    public void answer(String answer, LocalDateTime answeredAt) {
-        if (isAnswered) {
-            throw new IllegalStateException("이미 완성된 문답입니다.");
-        }
-        this.answer = answer;
-        this.isAnswered = true;
-        this.answeredAt = answeredAt;
-    }
 }
