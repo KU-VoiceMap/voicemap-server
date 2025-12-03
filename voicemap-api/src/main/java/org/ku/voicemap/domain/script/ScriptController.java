@@ -1,16 +1,12 @@
 package org.ku.voicemap.domain.script;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.script.dto.ScriptGetPagination;
 import org.ku.voicemap.domain.script.service.ScriptService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;

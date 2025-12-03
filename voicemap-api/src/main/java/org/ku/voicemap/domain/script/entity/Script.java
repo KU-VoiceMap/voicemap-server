@@ -1,6 +1,5 @@
 package org.ku.voicemap.domain.script.entity;
 
-import io.micrometer.common.util.StringUtils;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -43,12 +42,9 @@ public class Script {
     private LocalDateTime createdAt;
 
     public Script(UUID chatId, String question, String answer) {
-//        if (StringUtils.isBlank(question)) {
-//            throw new IllegalArgumentException("질문은 필수 입력 사항입니다.");
-//        }
         this.chatId = chatId;
         this.question = question;
-        this.answer=answer;
+        this.answer = answer;
         this.createdAt = LocalDateTime.now();
     }
 

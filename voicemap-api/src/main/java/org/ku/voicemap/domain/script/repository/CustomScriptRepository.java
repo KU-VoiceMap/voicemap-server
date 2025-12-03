@@ -21,8 +21,8 @@ public class CustomScriptRepository implements ScriptRepositoryCustomInterface {
         String jpql;
 
         if (lastId == null) {
-            jpql= "SELECT s FROM Script s WHERE s.chatId = :chatId  ORDER BY s.id DESC";
-        }else{
+            jpql = "SELECT s FROM Script s WHERE s.chatId = :chatId  ORDER BY s.id DESC";
+        } else {
             jpql= "SELECT s FROM Script s WHERE s.chatId = :chatId AND s.id < :lastId ORDER BY s.id DESC";
         }
 
