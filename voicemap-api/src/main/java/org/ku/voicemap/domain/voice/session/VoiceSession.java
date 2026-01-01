@@ -8,24 +8,24 @@ import org.ku.voicemap.domain.voice.outbound.ConversationRole;
 import org.springframework.web.socket.WebSocketSession;
 
 @Getter
-public class VoiceSessionContext {
+public class VoiceSession {
 
     private final String sessionId;
     private final String memberNumber;
     private final String chatId;
-    private final WebSocketSession clientSession;
-    private volatile WebSocketSession agentSession;
+    private final WebSocketSession clientConnection;
+    private volatile WebSocketSession agentConnection;
     private final Map<ConversationRole, StringBuilder> transcripts = new ConcurrentHashMap<>();
 
-    public VoiceSessionContext(String memberNumber, String chatId, WebSocketSession clientSession) {
+    public VoiceSession(String memberNumber, String chatId, WebSocketSession clientConnection) {
         this.sessionId = UUID.randomUUID().toString();
         this.memberNumber = memberNumber;
         this.chatId = chatId;
-        this.clientSession = clientSession;
+        this.clientConnection = clientConnection;
     }
 
-    public void bindAgentSession(WebSocketSession agentSession) {
-        this.agentSession = agentSession;
+    public void bindAgentConnection(WebSocketSession agentConnection) {
+        this.agentConnection = agentConnection;
     }
 
     public synchronized void appendTranscript(ConversationRole role, String text) {
@@ -41,3 +41,4 @@ public class VoiceSessionContext {
         transcripts.clear();
     }
 }
+

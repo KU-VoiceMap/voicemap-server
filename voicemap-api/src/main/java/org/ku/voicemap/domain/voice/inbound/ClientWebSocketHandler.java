@@ -32,7 +32,7 @@ public class ClientWebSocketHandler extends TextWebSocketHandler {
             }
             case AUDIO_INPUT -> {
                 AudioInputPayload payload = objectMapper.treeToValue(messagePayload, AudioInputPayload.class);
-                inbound.handleAudioInput(payload);
+                inbound.handleAudioInput(session, payload);
             }
         }
     }

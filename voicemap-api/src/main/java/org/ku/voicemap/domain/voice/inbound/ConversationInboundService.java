@@ -8,8 +8,8 @@ import org.ku.voicemap.domain.chat.reposiotry.ChatRepository;
 import org.ku.voicemap.domain.voice.ai.AgentConnector;
 import org.ku.voicemap.domain.voice.inbound.payload.AudioInputPayload;
 import org.ku.voicemap.domain.voice.inbound.payload.SessionInitPayload;
-import org.ku.voicemap.domain.voice.session.SessionManager;
-import org.ku.voicemap.domain.voice.session.VoiceSessionContext;
+import org.ku.voicemap.domain.voice.session.VoiceSession;
+import org.ku.voicemap.domain.voice.session.VoiceSessionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -21,10 +21,10 @@ public class ConversationInboundService {
 
     private final TokenProvider tokenProvider;
     private final ChatRepository chatRepository;
-    private final SessionManager sessionManager;
+    private final VoiceSessionRepository sessionRepository;
     private final AgentConnector agentConnector;
 
-    public void initializeSession(WebSocketSession clientSession, SessionInitPayload payload) {
+    public void initializeSession(WebSocketSession clientConnection, SessionInitPayload payload) {
         String memberNumber = tokenProvider.extractMemberNumber(payload.token());
 
         String chatId = Optional.ofNullable(payload.chatId())
@@ -33,16 +33,21 @@ public class ConversationInboundService {
                 .getId())
             .orElseGet(() -> chatRepository.save(new Chat(memberNumber, DEFAULT_CHAT_TITLE)).getId());
 
-        VoiceSessionContext context = sessionManager.createSession(memberNumber, chatId, clientSession);
-        agentConnector.connect(context.getSessionId());
+        VoiceSession session = new VoiceSession(memberNumber, chatId, clientConnection);
+        sessionRepository.save(session);
+        agentConnector.connect(session.getSessionId());
     }
 
-    public void handleAudioInput(AudioInputPayload payload) {
-        agentConnector.sendAudio(payload.sessionId(), payload.data());
+    public void handleAudioInput(WebSocketSession clientConnection, AudioInputPayload payload) {
+        VoiceSession session = sessionRepository.findByClientConnection(clientConnection)
+            .orElseThrow(() -> new IllegalStateException("Session not initialized"));
+        agentConnector.sendAudio(session.getSessionId(), payload.data());
     }
 
-    public void disconnectSession(String sessionId) {
-        agentConnector.disconnect(sessionId);
-        sessionManager.removeSession(sessionId);
+    public void disconnectSession(WebSocketSession clientConnection) {
+        sessionRepository.findByClientConnection(clientConnection).ifPresent(session -> {
+            agentConnector.disconnect(session.getSessionId());
+            sessionRepository.remove(session.getSessionId());
+        });
     }
 }

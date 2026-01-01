@@ -12,8 +12,8 @@ import org.ku.voicemap.domain.voice.outbound.payload.AudioOutputPayload;
 import org.ku.voicemap.domain.voice.outbound.payload.ServerPayload;
 import org.ku.voicemap.domain.voice.outbound.payload.SessionReadyPayload;
 import org.ku.voicemap.domain.voice.outbound.payload.TranscriptPayload;
-import org.ku.voicemap.domain.voice.session.SessionManager;
-import org.ku.voicemap.domain.voice.session.VoiceSessionContext;
+import org.ku.voicemap.domain.voice.session.VoiceSession;
+import org.ku.voicemap.domain.voice.session.VoiceSessionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -23,7 +23,7 @@ import org.springframework.web.socket.WebSocketSession;
 @RequiredArgsConstructor
 public class ConversationOutboundService {
 
-    private final SessionManager sessionManager;
+    private final VoiceSessionRepository sessionRepository;
     private final ScriptRepository scriptRepository;
     private final ObjectMapper objectMapper;
 
@@ -36,9 +36,9 @@ public class ConversationOutboundService {
     }
 
     public void sendTranscript(String sessionId, ConversationRole role, String text) {
-        VoiceSessionContext context = sessionManager.getSession(sessionId)
+        VoiceSession session = sessionRepository.findBySessionId(sessionId)
             .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
-        context.appendTranscript(role, text);
+        session.appendTranscript(role, text);
         send(sessionId, ServerMessageType.TRANSCRIPT, new TranscriptPayload(role.name(), text));
     }
 
@@ -47,17 +47,17 @@ public class ConversationOutboundService {
     }
 
     public void sendTurnComplete(String sessionId) {
-        VoiceSessionContext context = sessionManager.getSession(sessionId)
+        VoiceSession session = sessionRepository.findBySessionId(sessionId)
             .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
-        String userTranscript = context.getTranscript(ConversationRole.USER);
-        String agentTranscript = context.getTranscript(ConversationRole.AGENT);
+        String userTranscript = session.getTranscript(ConversationRole.USER);
+        String agentTranscript = session.getTranscript(ConversationRole.AGENT);
 
         log.info("[USER]: {}", userTranscript);
         log.info("[AGENT]: {}", agentTranscript);
 
-        saveScript(context.getChatId(), userTranscript, agentTranscript);
-        context.clearTranscript();
+        saveScript(session.getChatId(), userTranscript, agentTranscript);
+        session.clearTranscript();
 
         send(sessionId, ServerMessageType.TURN_COMPLETED, Collections.emptyMap());
     }
@@ -75,17 +75,17 @@ public class ConversationOutboundService {
     }
 
     private void send(String sessionId, ServerMessageType type, Object payload) {
-        VoiceSessionContext context = sessionManager.getSession(sessionId)
+        VoiceSession session = sessionRepository.findBySessionId(sessionId)
             .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
-        WebSocketSession clientSession = context.getClientSession();
-        if (!clientSession.isOpen()) {
-            sessionManager.removeSession(sessionId);
+        WebSocketSession clientConnection = session.getClientConnection();
+        if (!clientConnection.isOpen()) {
+            sessionRepository.remove(sessionId);
             return;
         }
         try {
             String json = objectMapper.writeValueAsString(new ServerPayload(type.name(), payload));
-            clientSession.sendMessage(new TextMessage(json));
+            clientConnection.sendMessage(new TextMessage(json));
         } catch (IOException e) {
             log.error("[ConversationOutboundService] Failed to send message: {}", type, e);
         }

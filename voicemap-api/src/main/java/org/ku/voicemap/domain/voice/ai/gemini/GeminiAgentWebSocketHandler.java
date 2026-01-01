@@ -22,7 +22,7 @@ public class GeminiAgentWebSocketHandler extends BinaryWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        log.info("[AgentWebSocketHandler] Connection closed for session: {}, status: {}", sessionId, status);
+        log.info("[GeminiAgentWebSocketHandler] Connection closed for session: {}, status: {}", sessionId, status);
     }
 
     @Override
@@ -41,7 +41,7 @@ public class GeminiAgentWebSocketHandler extends BinaryWebSocketHandler {
             }
 
         } catch (Exception e) {
-            log.error("[GeminiVoiceAgent] Error processing message", e);
+            log.error("[GeminiAgentWebSocketHandler] Error processing message", e);
         }
     }
 
