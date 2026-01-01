@@ -8,5 +8,5 @@ import org.springframework.transaction.annotation.Transactional;
 public interface ChatRepository extends JpaRepository<Chat, String> {
 
     @Transactional(readOnly = true)
-    List<Chat> findAllByMemberId(long memberId);
+    List<Chat> findAllByMemberNumber(String memberNumber);
 }

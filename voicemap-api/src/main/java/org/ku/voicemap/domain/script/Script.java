@@ -29,8 +29,8 @@ public class Script {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "chat_id", nullable = false)
-    private Long chatId;
+    @Column(name = "chat_id", nullable = false, length = 36)
+    private String chatId;
 
     @Column(name = "question", nullable = false, columnDefinition = "TEXT")
     private String question;
@@ -47,10 +47,14 @@ public class Script {
     @Column(name = "answered_at", nullable = true)
     private LocalDateTime answeredAt;
 
-    public Script(String question, LocalDateTime createdAt) {
+    public Script(String chatId, String question, LocalDateTime createdAt) {
+        if (StringUtils.isBlank(chatId)) {
+            throw new IllegalArgumentException("채팅 ID는 필수 입력 사항입니다.");
+        }
         if (StringUtils.isBlank(question)) {
             throw new IllegalArgumentException("질문은 필수 입력 사항입니다.");
         }
+        this.chatId = chatId;
         this.question = question;
         this.createdAt = createdAt;
     }

@@ -5,13 +5,11 @@ import org.springframework.web.socket.WebSocketSession;
 
 public interface SessionManager {
 
-    void bindClient(String sessionId, WebSocketSession clientSession);
+    VoiceSessionContext createSession(String memberNumber, String chatId, WebSocketSession clientSession);
 
     void bindAgent(String sessionId, WebSocketSession agentSession);
 
-    Optional<WebSocketSession> getClientSession(String sessionId);
-
-    Optional<WebSocketSession> getAgentSession(String sessionId);
+    Optional<VoiceSessionContext> getSession(String sessionId);
 
     void removeSession(String sessionId);
 }

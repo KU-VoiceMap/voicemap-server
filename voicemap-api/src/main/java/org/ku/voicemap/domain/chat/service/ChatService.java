@@ -21,20 +21,20 @@ public class ChatService {
     private final ChatTitleSummarizer chatTitleSummarizer;
 
     @Transactional
-    public CreateChatResponse createChat(long memberId, CreateChatRequest request) {
-        Chat chat = chatRepository.save(new Chat(memberId, request.question()));
+    public CreateChatResponse createChat(String memberNumber, CreateChatRequest request) {
+        Chat chat = chatRepository.save(new Chat(memberNumber, request.question()));
 
         return new CreateChatResponse(
-            chat.getId().toString(),
+            chat.getId(),
             chatTitleSummarizer.summarize(request.question()) // TODO: 제목 생성 외부요청한다면 별도로 분리
         );
     }
 
-    public MemberChatsResponse getMemberChats(long memberId) {
-        List<Chat> chats = chatRepository.findAllByMemberId(memberId);
+    public MemberChatsResponse getMemberChats(String memberNumber) {
+        List<Chat> chats = chatRepository.findAllByMemberNumber(memberNumber);
         return new MemberChatsResponse(
             chats.stream()
-                .map(chat -> new MemberChatResponse(chat.getId().toString(), chat.getTitle()))
+                .map(chat -> new MemberChatResponse(chat.getId(), chat.getTitle()))
                 .toList()
         );
     }

@@ -2,7 +2,6 @@ package org.ku.voicemap.domain.voice.ai.gemini;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ku.voicemap.domain.voice.ai.AgentConnector;
@@ -11,6 +10,7 @@ import org.ku.voicemap.domain.voice.ai.gemini.payload.BidiGenerateContentRealtim
 import org.ku.voicemap.domain.voice.ai.gemini.payload.SetupMessage;
 import org.ku.voicemap.domain.voice.outbound.ConversationOutboundService;
 import org.ku.voicemap.domain.voice.session.SessionManager;
+import org.ku.voicemap.domain.voice.session.VoiceSessionContext;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
@@ -57,7 +57,8 @@ public class GeminiAgentConnector implements AgentConnector {
 
     @Override
     public void sendAudio(String sessionId, String base64Audio) {
-        WebSocketSession agentSession = sessionManager.getAgentSession(sessionId)
+        WebSocketSession agentSession = sessionManager.getSession(sessionId)
+            .map(VoiceSessionContext::getAgentSession)
             .orElseThrow(() -> new IllegalArgumentException("Agent session not found: " + sessionId));
         try {
             BidiGenerateContentRealtimeInput input = new BidiGenerateContentRealtimeInput(base64Audio);
@@ -70,15 +71,14 @@ public class GeminiAgentConnector implements AgentConnector {
 
     @Override
     public void disconnect(String sessionId) {
-        Optional<WebSocketSession> session = sessionManager.getAgentSession(sessionId);
-        if (session.isEmpty()) {
-            return;
-        }
-        WebSocketSession agentSession = session.get();
-        try {
-            agentSession.close();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to close agent session: " + sessionId, e);
-        }
+        sessionManager.getSession(sessionId)
+            .map(VoiceSessionContext::getAgentSession)
+            .ifPresent(agentSession -> {
+                try {
+                    agentSession.close();
+                } catch (Exception e) {
+                    throw new IllegalStateException("Failed to close agent session: " + sessionId, e);
+                }
+            });
     }
 }

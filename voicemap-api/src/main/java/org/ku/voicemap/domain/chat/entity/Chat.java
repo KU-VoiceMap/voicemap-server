@@ -15,7 +15,7 @@ import org.apache.commons.lang3.StringUtils;
     catalog = "voicemap",
     name = "chat",
     indexes = {
-        @Index(name = "idx_chat_room_member_id", columnList = "member_id")
+        @Index(name = "idx_chat_member_number", columnList = "member_number")
     }
 )
 @Entity
@@ -28,13 +28,16 @@ public class Chat {
     @Id
     private String id;
 
-    @Column(name = "member_id", nullable = false)
-    private Long memberId;
+    @Column(name = "member_number", nullable = false, length = 50)
+    private String memberNumber;
 
     @Column(name = "title", length = TITLE_MAX_LENGTH, nullable = false)
     private String title;
 
-    public Chat(long memberId, String title) {
+    public Chat(String memberNumber, String title) {
+        if (StringUtils.isBlank(memberNumber)) {
+            throw new IllegalArgumentException("회원 번호는 필수 입력 사항입니다.");
+        }
         if (StringUtils.isBlank(title)) {
             throw new IllegalArgumentException("채팅 제목은 필수 입력 사항입니다.");
         }
@@ -42,7 +45,7 @@ public class Chat {
             throw new IllegalArgumentException("채팅 제목의 길이를 초과합니다.");
         }
         this.id = UUID.randomUUID().toString();
-        this.memberId = memberId;
+        this.memberNumber = memberNumber;
         this.title = title;
     }
 }

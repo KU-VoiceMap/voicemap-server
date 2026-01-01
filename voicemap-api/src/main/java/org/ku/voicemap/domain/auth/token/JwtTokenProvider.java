@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 public class JwtTokenProvider implements TokenProvider {
 
     private static final ZoneOffset KST = ZoneOffset.ofHours(9);
+    private static final String CLAIM_MEMBER_NUMBER = "memberNumber";
 
     private final Algorithm algorithm;
     private final Duration accessTokenExpireDuration;
@@ -28,7 +29,7 @@ public class JwtTokenProvider implements TokenProvider {
         this.algorithm = Algorithm.HMAC256(jwtProperties.secretKey());
         this.accessTokenExpireDuration = jwtProperties.accessTokenExpireDuration();
         this.refreshTokenExpireDuration = jwtProperties.refreshTokenExpireDuration();
-        this.tokenVerifier = JWT.require(algorithm).withClaimPresence("memberNumber").build();
+        this.tokenVerifier = JWT.require(algorithm).withClaimPresence(CLAIM_MEMBER_NUMBER).build();
     }
 
     @Override
@@ -48,7 +49,7 @@ public class JwtTokenProvider implements TokenProvider {
 
     private String generateToken(String memberNumber, String type, LocalDateTime issuedAt, LocalDateTime expireAt) {
         return JWT.create()
-            .withClaim("memberNumber", memberNumber)
+            .withClaim(CLAIM_MEMBER_NUMBER, memberNumber)
             .withClaim("type", type)
             .withIssuedAt(issuedAt.toInstant(KST))
             .withExpiresAt(expireAt.toInstant(KST))
@@ -63,5 +64,11 @@ public class JwtTokenProvider implements TokenProvider {
         } catch (JWTVerificationException e) {
             return false;
         }
+    }
+
+    @Override
+    public String extractMemberNumber(String token) {
+        DecodedJWT decodedToken = tokenVerifier.verify(token);
+        return decodedToken.getClaim(CLAIM_MEMBER_NUMBER).asString();
     }
 }

@@ -7,54 +7,57 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
-// TODO: Config로 관리 ?
-// Sticky Session 필요
+// TODO: Redis 기반 구현으로 교체 시 Sticky Session 필요
 @Slf4j
 @Component
 public class InMemorySessionManager implements SessionManager {
 
-    private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
-    private final Map<String, WebSocketSession> agentSessions = new ConcurrentHashMap<>();
+    private final Map<String, VoiceSessionContext> sessions = new ConcurrentHashMap<>();
+    private final Map<String, String> clientSessionIdToSessionId = new ConcurrentHashMap<>();
 
     @Override
-    public void bindClient(String sessionId, WebSocketSession clientSession) {
-        sessions.put(sessionId, clientSession);
+    public VoiceSessionContext createSession(String memberNumber, String chatId, WebSocketSession clientSession) {
+        VoiceSessionContext context = new VoiceSessionContext(memberNumber, chatId, clientSession);
+        sessions.put(context.getSessionId(), context);
+        clientSessionIdToSessionId.put(clientSession.getId(), context.getSessionId());
+        return context;
     }
 
     @Override
     public void bindAgent(String sessionId, WebSocketSession agentSession) {
-        agentSessions.put(sessionId, agentSession);
+        VoiceSessionContext context = sessions.get(sessionId);
+        if (context != null) {
+            context.bindAgentSession(agentSession);
+        }
     }
 
     @Override
-    public Optional<WebSocketSession> getClientSession(String sessionId) {
+    public Optional<VoiceSessionContext> getSession(String sessionId) {
         return Optional.ofNullable(sessions.get(sessionId));
     }
 
     @Override
-    public Optional<WebSocketSession> getAgentSession(String sessionId) {
-        return Optional.ofNullable(agentSessions.get(sessionId));
-    }
-
-    @Override
     public void removeSession(String sessionId) {
-        getClientSession(sessionId).ifPresent(session -> {
+        VoiceSessionContext context = sessions.remove(sessionId);
+        if (context == null) {
+            return;
+        }
+
+        clientSessionIdToSessionId.remove(context.getClientSession().getId());
+
+        try {
+            context.getClientSession().close();
+        } catch (Exception e) {
+            log.error("Failed to close client session: {}", sessionId, e);
+        }
+
+        WebSocketSession agentSession = context.getAgentSession();
+        if (agentSession != null) {
             try {
-                session.close();
-            } catch (Exception e) {
-                log.error("Failed to close client session: {}", sessionId, e);
-            } finally {
-                sessions.remove(sessionId);
-            }
-        });
-        getAgentSession(sessionId).ifPresent(session -> {
-            try {
-                session.close();
+                agentSession.close();
             } catch (Exception e) {
                 log.error("Failed to close agent session: {}", sessionId, e);
-            } finally {
-                agentSessions.remove(sessionId);
             }
-        });
+        }
     }
 }

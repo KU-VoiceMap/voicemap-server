@@ -11,24 +11,26 @@ import org.ku.voicemap.domain.chat.entity.Chat;
 
 class ChatTest {
 
+    private static final String MEMBER_NUMBER = "test-member-number";
+
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {" ", ""})
     void 채팅_제목이_존재하지_않으면_예외를_발생한다(String title) {
-        assertThatThrownBy(() -> new Chat(1L, title))
+        assertThatThrownBy(() -> new Chat(MEMBER_NUMBER, title))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void 채팅_제목이_100자를_초과하면_예외를_발생한다() {
         String title = "a".repeat(101);
-        assertThatThrownBy(() -> new Chat(1L, title))
+        assertThatThrownBy(() -> new Chat(MEMBER_NUMBER, title))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void 채팅을_생성한다() {
         String title = "a".repeat(100);
-        assertDoesNotThrow(() -> new Chat(1L, title));
+        assertDoesNotThrow(() -> new Chat(MEMBER_NUMBER, title));
     }
 }

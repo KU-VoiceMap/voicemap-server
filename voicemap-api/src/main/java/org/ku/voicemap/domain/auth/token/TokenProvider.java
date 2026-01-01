@@ -9,4 +9,6 @@ public interface TokenProvider {
     String generateAccessToken(String memberNumber, LocalDateTime now);
 
     boolean validateToken(String token);
+
+    String extractMemberNumber(String token);
 }

@@ -15,7 +15,7 @@ public class ChatController {
     private final ChatService chatService;
 
     @PostMapping("/chats")
-    public CreateChatResponse createChat(long memberId, @RequestBody CreateChatRequest request) {
-        return chatService.createChat(memberId, request);
+    public CreateChatResponse createChat(String memberNumber, @RequestBody CreateChatRequest request) {
+        return chatService.createChat(memberNumber, request);
     }
 }

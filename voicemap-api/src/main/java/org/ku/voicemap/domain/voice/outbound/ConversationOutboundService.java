@@ -2,15 +2,18 @@ package org.ku.voicemap.domain.voice.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.ku.voicemap.domain.chat.reposiotry.ChatRepository;
+import org.ku.voicemap.domain.script.Script;
+import org.ku.voicemap.domain.script.ScriptRepository;
 import org.ku.voicemap.domain.voice.outbound.payload.AudioOutputPayload;
 import org.ku.voicemap.domain.voice.outbound.payload.ServerPayload;
 import org.ku.voicemap.domain.voice.outbound.payload.SessionReadyPayload;
 import org.ku.voicemap.domain.voice.outbound.payload.TranscriptPayload;
 import org.ku.voicemap.domain.voice.session.SessionManager;
+import org.ku.voicemap.domain.voice.session.VoiceSessionContext;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -20,10 +23,9 @@ import org.springframework.web.socket.WebSocketSession;
 @RequiredArgsConstructor
 public class ConversationOutboundService {
 
-    private final ChatRepository chatRepository;
     private final SessionManager sessionManager;
+    private final ScriptRepository scriptRepository;
     private final ObjectMapper objectMapper;
-    private final TranscriptManager transcriptManager;
 
     public void sendSessionReady(String sessionId) {
         send(sessionId, ServerMessageType.SESSION_READY, new SessionReadyPayload(sessionId));
@@ -34,7 +36,9 @@ public class ConversationOutboundService {
     }
 
     public void sendTranscript(String sessionId, ConversationRole role, String text) {
-        transcriptManager.appendTranscript(sessionId, role, text);
+        VoiceSessionContext context = sessionManager.getSession(sessionId)
+            .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+        context.appendTranscript(role, text);
         send(sessionId, ServerMessageType.TRANSCRIPT, new TranscriptPayload(role.name(), text));
     }
 
@@ -43,19 +47,38 @@ public class ConversationOutboundService {
     }
 
     public void sendTurnComplete(String sessionId) {
-        String userTranscript = transcriptManager.getTranscript(sessionId, ConversationRole.USER);
-        String agentTranscript = transcriptManager.getTranscript(sessionId, ConversationRole.AGENT);
+        VoiceSessionContext context = sessionManager.getSession(sessionId)
+            .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+        String userTranscript = context.getTranscript(ConversationRole.USER);
+        String agentTranscript = context.getTranscript(ConversationRole.AGENT);
+
         log.info("[USER]: {}", userTranscript);
         log.info("[AGENT]: {}", agentTranscript);
-        transcriptManager.clearTranscript(sessionId);
-        // TODO: Script 저장
+
+        saveScript(context.getChatId(), userTranscript, agentTranscript);
+        context.clearTranscript();
+
         send(sessionId, ServerMessageType.TURN_COMPLETED, Collections.emptyMap());
     }
 
+    private void saveScript(String chatId, String question, String answer) {
+        if (question.isBlank()) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        Script script = new Script(chatId, question, now);
+        if (!answer.isBlank()) {
+            script.answer(answer, now);
+        }
+        scriptRepository.save(script);
+    }
+
     private void send(String sessionId, ServerMessageType type, Object payload) {
-        WebSocketSession clientSession = sessionManager.getClientSession(sessionId)
+        VoiceSessionContext context = sessionManager.getSession(sessionId)
             .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
+        WebSocketSession clientSession = context.getClientSession();
         if (!clientSession.isOpen()) {
             sessionManager.removeSession(sessionId);
             return;
