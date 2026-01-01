@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -32,10 +33,12 @@ public class Script {
     @Column(name = "chat_id", nullable = false, length = 36)
     private String chatId;
 
-    @Column(name = "question", nullable = false, columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "question", nullable = false)
     private String question;
 
-    @Column(name = "answer", nullable = true, columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "answer", nullable = true)
     private String answer;
 
     @Column(name = "is_answered", nullable = false)
