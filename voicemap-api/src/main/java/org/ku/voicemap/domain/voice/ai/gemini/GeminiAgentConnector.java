@@ -37,17 +37,22 @@ public class GeminiAgentConnector implements AgentConnector {
     @Override
     public void connect(String sessionId) {
         webSocketClient.execute(
-            new GeminiAgentWebSocketHandler(sessionId, objectMapper, outbound),
-            GEMINI_URL + "?key=" + aiProperties.apiKey()
-        ).thenAccept(agentSession -> {
-            sessionManager.bindAgent(sessionId, agentSession);
-            try {
-                SetupMessage setupMessage = SetupMessage.create(aiProperties.systemInstruction());
-                agentSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(setupMessage)));
-            } catch (IOException e) {
+                new GeminiAgentWebSocketHandler(sessionId, objectMapper, outbound),
+                GEMINI_URL + "?key=" + aiProperties.apiKey()
+            ).thenAccept(agentSession -> {
+                sessionManager.bindAgent(sessionId, agentSession);
+                try {
+                    SetupMessage setupMessage = SetupMessage.create(aiProperties.systemInstruction());
+                    agentSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(setupMessage)));
+                } catch (IOException e) {
+                    log.error("[AgentWebSocketHandler] Failed to send setup message for session: {}", sessionId, e);
+                }
+            })
+            .exceptionally(e -> {
                 log.error("[AgentWebSocketHandler] Failed to send setup message for session: {}", sessionId, e);
-            }
-        });
+                sessionManager.removeSession(sessionId);
+                return null;
+            });
     }
 
     @Override
