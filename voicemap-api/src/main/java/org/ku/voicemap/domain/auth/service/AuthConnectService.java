@@ -24,7 +24,7 @@ public class AuthConnectService {
     @Transactional
     public TokenResponse connect(ExternalMember externalMember, String memberNumber, LocalDateTime now) {
         AuthClient authClient = authClientRepository.findByProviderAndPrincipal(externalMember.provider(), externalMember.principal())
-            .orElseThrow(() -> new IllegalArgumentException("인증 정보가 존재하지 않습니다."));
+            .orElseGet(() -> authClientRepository.save(new AuthClient(externalMember.email(), externalMember.provider(), externalMember.principal())));
         authClient.connect(memberNumber);
         authClientRepository.save(authClient);
         TokenPair tokenPair = tokenProvider.generateTokenPair(authClient.getMemberNumber(), now);

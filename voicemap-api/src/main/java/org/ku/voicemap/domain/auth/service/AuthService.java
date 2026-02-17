@@ -25,7 +25,7 @@ public class AuthService {
     @Transactional
     public TokenResponse login(ExternalMember externalMember, LocalDateTime now) {
         AuthClient authClient = authClientRepository.findByProviderAndPrincipal(externalMember.provider(), externalMember.principal())
-            .orElseGet(() -> authClientRepository.save(new AuthClient(externalMember.email(), externalMember.provider(), externalMember.principal())));
+            .orElseThrow(AuthClientNotConnectedException::new);
         if (!authClient.isConnected()) {
             throw new AuthClientNotConnectedException();
         }
