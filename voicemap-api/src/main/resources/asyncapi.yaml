@@ -1,0 +1,294 @@
+asyncapi: 3.0.0
+id: "urn:org:ku:voicemap:ws-chat"
+defaultContentType: application/json
+info:
+  title: VoiceMap WebSocket API
+  version: 1.0.0
+  description: |
+    VoiceMap WebSocket(/ws/chat) Documentation
+
+servers:
+  local:
+    host: localhost:8080
+    protocol: ws
+    description: 로컬
+
+channels:
+  wsChat:
+    address: /ws/chat
+    title: Voice chat socket
+    summary: 클라이언트와 서버 간 실시간 음성 대화 채널
+    messages:
+      sessionInit:
+        $ref: "#/components/messages/SessionInitMessage"
+      audioInput:
+        $ref: "#/components/messages/AudioInputMessage"
+      sessionReady:
+        $ref: "#/components/messages/SessionReadyMessage"
+      audioOutput:
+        $ref: "#/components/messages/AudioOutputMessage"
+      transcript:
+        $ref: "#/components/messages/TranscriptMessage"
+      interrupted:
+        $ref: "#/components/messages/InterruptedMessage"
+      turnCompleted:
+        $ref: "#/components/messages/TurnCompletedMessage"
+
+operations:
+  receiveClientMessages:
+    action: receive
+    channel:
+      $ref: "#/channels/wsChat"
+    summary: 서버가 클라이언트 메시지를 수신한다.
+    description: |
+      SESSION_INIT으로 세션을 초기화한 뒤 AUDIO_INPUT을 순차적으로 수신한다.
+    messages:
+      - $ref: "#/channels/wsChat/messages/sessionInit"
+      - $ref: "#/channels/wsChat/messages/audioInput"
+    tags:
+      - name: websocket
+      - name: inbound
+
+  sendServerMessages:
+    action: send
+    channel:
+      $ref: "#/channels/wsChat"
+    summary: 서버가 클라이언트로 메시지를 전송한다.
+    messages:
+      - $ref: "#/channels/wsChat/messages/sessionReady"
+      - $ref: "#/channels/wsChat/messages/audioOutput"
+      - $ref: "#/channels/wsChat/messages/transcript"
+      - $ref: "#/channels/wsChat/messages/interrupted"
+      - $ref: "#/channels/wsChat/messages/turnCompleted"
+    tags:
+      - name: websocket
+      - name: outbound
+
+components:
+  messages:
+    SessionInitMessage:
+      name: SessionInitMessage
+      title: Session init request
+      summary: 클라이언트가 세션을 초기화한다.
+      payload:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - payload
+        properties:
+          type:
+            type: string
+            enum: [SESSION_INIT]
+          payload:
+            $ref: "#/components/schemas/SessionInitPayload"
+      examples:
+        - name: init
+          payload:
+            type: SESSION_INIT
+            payload:
+              token: "eyJhbGciOi..."
+              chatId: "chat-123"
+
+    AudioInputMessage:
+      name: AudioInputMessage
+      title: Audio chunk request
+      summary: 클라이언트가 오디오 청크를 전송한다.
+      payload:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - payload
+        properties:
+          type:
+            type: string
+            enum: [AUDIO_INPUT]
+          payload:
+            $ref: "#/components/schemas/AudioInputPayload"
+      examples:
+        - name: audio-input
+          payload:
+            type: AUDIO_INPUT
+            payload:
+              data: "UklGRiQAAABXQVZF..."
+
+    SessionReadyMessage:
+      name: SessionReadyMessage
+      title: Session ready response
+      summary: 서버가 세션 준비 완료를 알린다.
+      payload:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - payload
+        properties:
+          type:
+            type: string
+            enum: [SESSION_READY]
+          payload:
+            $ref: "#/components/schemas/SessionReadyPayload"
+      examples:
+        - name: ready
+          payload:
+            type: SESSION_READY
+            payload:
+              sessionId: "session-abc"
+
+    AudioOutputMessage:
+      name: AudioOutputMessage
+      title: Audio output response
+      summary: 서버가 오디오 응답을 전송한다.
+      payload:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - payload
+        properties:
+          type:
+            type: string
+            enum: [AUDIO_OUTPUT]
+          payload:
+            $ref: "#/components/schemas/AudioOutputPayload"
+      examples:
+        - name: audio-output
+          payload:
+            type: AUDIO_OUTPUT
+            payload:
+              base64Audio: "UklGRiQAAABXQVZF..."
+
+    TranscriptMessage:
+      name: TranscriptMessage
+      title: Transcript response
+      summary: 서버가 전사 텍스트를 전송한다.
+      payload:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - payload
+        properties:
+          type:
+            type: string
+            enum: [TRANSCRIPT]
+          payload:
+            $ref: "#/components/schemas/TranscriptPayload"
+      examples:
+        - name: transcript
+          payload:
+            type: TRANSCRIPT
+            payload:
+              role: AGENT
+              text: "안녕하세요. 무엇을 도와드릴까요?"
+
+    InterruptedMessage:
+      name: InterruptedMessage
+      title: Interrupted response
+      summary: 서버가 턴 중단을 알린다.
+      payload:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - payload
+        properties:
+          type:
+            type: string
+            enum: [INTERRUPTED]
+          payload:
+            $ref: "#/components/schemas/EmptyPayload"
+      examples:
+        - name: interrupted
+          payload:
+            type: INTERRUPTED
+            payload: {}
+
+    TurnCompletedMessage:
+      name: TurnCompletedMessage
+      title: Turn completed response
+      summary: 서버가 턴 완료를 알린다.
+      payload:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - payload
+        properties:
+          type:
+            type: string
+            enum: [TURN_COMPLETED]
+          payload:
+            $ref: "#/components/schemas/EmptyPayload"
+      examples:
+        - name: turn-completed
+          payload:
+            type: TURN_COMPLETED
+            payload: {}
+
+  schemas:
+    SessionInitPayload:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: 인증 토큰
+        chatId:
+          type:
+            - string
+            - "null"
+          description: 기존 채팅 ID. 없으면 서버가 새 채팅을 생성한다.
+
+    AudioInputPayload:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          type: string
+          description: base64 인코딩 오디오 청크
+
+    SessionReadyPayload:
+      type: object
+      additionalProperties: false
+      required:
+        - sessionId
+      properties:
+        sessionId:
+          type: string
+          description: 서버가 발급한 세션 ID
+
+    AudioOutputPayload:
+      type: object
+      additionalProperties: false
+      required:
+        - base64Audio
+      properties:
+        base64Audio:
+          type: string
+          description: base64 인코딩 오디오 데이터
+
+    TranscriptPayload:
+      type: object
+      additionalProperties: false
+      required:
+        - role
+        - text
+      properties:
+        role:
+          type: string
+          enum: [USER, AGENT]
+          description: 대화 주체
+        text:
+          type: string
+          description: 전사 텍스트
+
+    EmptyPayload:
+      type: object
+      additionalProperties: false
+      maxProperties: 0
