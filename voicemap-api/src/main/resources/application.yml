@@ -63,8 +63,21 @@ spring:
 
 voicemap:
   datasource:
-    driver-class-name: # TODO: add properties
-    jdbc-url:
-    username:
-    password:
+    driver-class-name: oracle.jdbc.OracleDriver
+    jdbc-url: ${DB_JDBC_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     pool-name: voicemap-hikari-pool
+
+auth:
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY}
+  access-token-expire-duration: 1h
+  refresh-token-expire-duration: 7d
+
+ai:
+  api-key: ${AI_API_KEY}
+  system-instruction: ${AI_SYSTEM_INSTRUCTION}

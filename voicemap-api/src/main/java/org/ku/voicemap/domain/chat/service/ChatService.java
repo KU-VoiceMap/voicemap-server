@@ -30,6 +30,7 @@ public class ChatService {
         );
     }
 
+    @Transactional(readOnly = true)
     public MemberChatsResponse getMemberChats(String memberNumber) {
         List<Chat> chats = chatRepository.findAllByMemberNumber(memberNumber);
         return new MemberChatsResponse(
