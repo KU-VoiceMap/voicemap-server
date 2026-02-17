@@ -1,682 +1,1005 @@
-// Voice Chat Client
-class VoiceChatClient {
+const STORAGE_KEYS = {
+    accessToken: "voicemap.accessToken",
+    refreshToken: "voicemap.refreshToken",
+    pendingGoogleIdToken: "voicemap.pendingGoogleIdToken"
+};
+
+const GOOGLE_CLIENT_ID = "449433791049-276ln0ta9r768dddnjftjq1qleerq231.apps.googleusercontent.com";
+const GIS_REDIRECT_URI = "http://localhost:8080/oauth/callback";
+const APP_PAGE_PATH = "/voice-chat.html";
+
+class VoiceMapApp {
     constructor() {
         this.ws = null;
+        this.manualSocketClose = false;
+        this.sessionReadyResolve = null;
+        this.sessionReadyReject = null;
+        this.sessionReadyTimeoutId = null;
+
         this.sessionId = null;
-        this.isConnected = false;
-        this.micAudioContext = null; // 마이크 전용 AudioContext
-        this.playbackAudioContext = null; // 재생 전용 AudioContext
+        this.isConnecting = false;
+        this.isRecording = false;
+
+        this.accessToken = "";
+        this.refreshToken = "";
+        this.activeChatId = null;
+        this.chats = [];
+        this.knownChatIdsBeforeSession = new Set();
+
+        this.micAudioContext = null;
+        this.playbackAudioContext = null;
         this.mediaStream = null;
         this.audioWorkletNode = null;
+        this.audioWorkletModuleUrl = null;
         this.audioQueue = [];
+        this.audioSources = [];
         this.isPlayingAudio = false;
-        this.currentAudioSource = null; // 현재 재생 중인 소스
-        this.currentMessageElement = null; // 현재 업데이트 중인 메시지 요소
-        this.currentMessageRole = null; // 현재 메시지의 role
-        this.nextStartTime = 0; // 다음 오디오 청크 재생 시작 시간
-        this.audioSources = []; // 재생 중인 모든 소스 추적
+        this.nextStartTime = 0;
 
-        // UI Elements
-        this.connectBtn = document.getElementById('connectBtn');
-        this.disconnectBtn = document.getElementById('disconnectBtn');
-        this.statusIndicator = document.getElementById('statusIndicator');
-        this.statusText = document.querySelector('.status-text');
-        this.chatMessages = document.getElementById('chatMessages');
-        this.sessionIdElement = document.getElementById('sessionId');
-        this.micStatus = document.getElementById('micStatus');
-        this.aiStatus = document.getElementById('aiStatus');
+        this.liveMessageRole = null;
+        this.liveMessageElement = null;
 
-        this.initEventListeners();
+        this.authView = document.getElementById("authView");
+        this.appView = document.getElementById("appView");
+        this.authStatus = document.getElementById("authStatus");
+        this.googleSignInButton = document.getElementById("googleSignInButton");
+
+        this.memberInfo = document.getElementById("memberInfo");
+        this.newSessionBtn = document.getElementById("newSessionBtn");
+        this.logoutBtn = document.getElementById("logoutBtn");
+        this.chatList = document.getElementById("chatList");
+        this.chatTitle = document.getElementById("chatTitle");
+        this.connectionState = document.getElementById("connectionState");
+        this.sessionIdBadge = document.getElementById("sessionIdBadge");
+        this.micStatusBadge = document.getElementById("micStatusBadge");
+        this.aiStatusBadge = document.getElementById("aiStatusBadge");
+        this.transcriptPanel = document.getElementById("transcriptPanel");
+        this.recordBtn = document.getElementById("recordBtn");
+
+        this.bindEvents();
     }
 
-    initEventListeners() {
-        this.connectBtn.addEventListener('click', () => this.connect());
-        this.disconnectBtn.addEventListener('click', () => this.disconnect());
+    bindEvents() {
+        this.newSessionBtn.addEventListener("click", () => this.prepareNewSession());
+        this.logoutBtn.addEventListener("click", () => this.logout());
+        this.recordBtn.addEventListener("click", () => this.toggleRecording());
     }
 
-    async connect() {
-        try {
-            this.updateStatus('연결 중...', false);
-            this.connectBtn.disabled = true;
+    async init() {
+        const tokens = this.loadTokens();
+        this.accessToken = tokens.accessToken;
+        this.refreshToken = tokens.refreshToken;
 
-            // WebSocket 연결
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
-            this.ws = new WebSocket(wsUrl);
-
-            this.ws.onopen = () => this.onWebSocketOpen();
-            this.ws.onmessage = (event) => this.onWebSocketMessage(event);
-            this.ws.onerror = (error) => this.onWebSocketError(error);
-            this.ws.onclose = () => this.onWebSocketClose();
-
-        } catch (error) {
-            console.error('Connection error:', error);
-            this.updateStatus('연결 실패', false);
-            this.connectBtn.disabled = false;
-        }
-    }
-
-    onWebSocketOpen() {
-        console.log('WebSocket connected');
-
-        // SESSION_INIT 메시지 전송
-        const initMessage = {
-            type: 'SESSION_INIT',
-            payload: {
-                token: 'demo-access-token' // 실제로는 인증 토큰 사용
-            }
-        };
-
-        this.ws.send(JSON.stringify(initMessage));
-        this.updateStatus('세션 초기화 중...', false);
-    }
-
-    async onWebSocketMessage(event) {
-        try {
-            const message = JSON.parse(event.data);
-            console.log('Received message:', message.type);
-
-            switch (message.type) {
-                case 'SESSION_READY':
-                    await this.onSessionReady(message.payload);
-                    break;
-                case 'AUDIO_OUTPUT':
-                    await this.onAudioOutput(message.payload);
-                    break;
-                case 'TRANSCRIPT':
-                    this.onTranscript(message.payload);
-                    break;
-                case 'INTERRUPTED':
-                    this.onInterrupted();
-                    break;
-                case 'TURN_COMPLETED':
-                    this.onTurnComplete();
-                    break;
-                default:
-                    console.warn('Unknown message type:', message.type);
-            }
-        } catch (error) {
-            console.error('Error processing message:', error);
-        }
-    }
-
-    async onSessionReady(payload) {
-        console.log('Session ready:', payload.sessionId);
-        this.sessionId = payload.sessionId;
-        this.sessionIdElement.textContent = payload.sessionId;
-        this.isConnected = true;
-
-        this.updateStatus('연결됨', true);
-        this.connectBtn.disabled = true;
-        this.disconnectBtn.disabled = false;
-
-        // 마이크 시작
-        await this.startMicrophone();
-    }
-
-    async startMicrophone() {
-        try {
-            this.micStatus.textContent = '마이크 준비 중...';
-
-            // 마이크 권한 체크
-            try {
-                const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
-                console.log('Microphone permission status:', permissionStatus.state);
-
-                if (permissionStatus.state === 'denied') {
-                    throw new Error('마이크 권한이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.');
-                }
-            } catch (permError) {
-                // Safari 등 permissions API를 지원하지 않는 브라우저에서는 무시
-                console.log('Permissions API not supported, proceeding with getUserMedia');
-            }
-
-            // AudioContext를 먼저 생성 (브라우저 기본 샘플레이트 사용)
-            // 마이크 전용 AudioContext
-            this.micAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const contextSampleRate = this.micAudioContext.sampleRate;
-            console.log('Microphone AudioContext sample rate:', contextSampleRate);
-
-            // 마이크 스트림 가져오기
-            this.mediaStream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true,
-                    channelCount: 1 // 모노
-                }
-            });
-
-            console.log('Media stream obtained:', this.mediaStream.getAudioTracks()[0].getSettings());
-
-            const source = this.micAudioContext.createMediaStreamSource(this.mediaStream);
-
-            // 다운샘플링 비율 계산 (예: 48000 -> 16000 = 3:1)
-            const downsampleRatio = Math.round(contextSampleRate / 16000);
-            console.log('Downsample ratio:', contextSampleRate, '->', 16000, '(ratio:', downsampleRatio, ')');
-
-            // AudioWorklet을 사용하여 오디오 처리
-            const processorUrl = this.createAudioProcessorBlob();
-            await this.micAudioContext.audioWorklet.addModule(processorUrl);
-
-            this.audioWorkletNode = new AudioWorkletNode(this.micAudioContext, 'audio-processor', {
-                processorOptions: {
-                    sampleRate: contextSampleRate,
-                    targetSampleRate: 16000,
-                    downsampleRatio: downsampleRatio
-                }
-            });
-
-            this.audioWorkletNode.port.onmessage = (event) => {
-                if (event.data.type === 'audio') {
-                    this.sendAudioData(event.data.audio);
-                }
-            };
-
-            source.connect(this.audioWorkletNode);
-            // 주의: destination에 연결하면 에코가 발생할 수 있으므로 제거
-            // this.audioWorkletNode.connect(this.micAudioContext.destination);
-
-            this.micStatus.textContent = '녹음 중 🎙️';
-            console.log('Microphone started successfully');
-
-        } catch (error) {
-            console.error('Microphone error:', error);
-            this.micStatus.textContent = '마이크 오류';
-
-            let errorMessage = '마이크를 시작할 수 없습니다.\n\n상세 정보: ' + error.message;
-
-            if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                errorMessage = '마이크 접근 권한이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.';
-            } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-                errorMessage = '마이크를 찾을 수 없습니다. 마이크가 연결되어 있는지 확인해주세요.';
-            } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-                errorMessage = '마이크에 접근할 수 없습니다. 다른 프로그램이 마이크를 사용 중일 수 있습니다.';
-            }
-
-            alert(errorMessage);
-            this.disconnect();
-        }
-    }
-
-    createAudioProcessorBlob() {
-        const processorCode = `
-        class AudioProcessor extends AudioWorkletProcessor {
-            constructor(options) {
-                super();
-                const processorOptions = options.processorOptions || {};
-                this.sampleRate = processorOptions.sampleRate || 48000;
-                this.targetSampleRate = processorOptions.targetSampleRate || 16000;
-                this.downsampleRatio = processorOptions.downsampleRatio || 3;
-                
-                // 버퍼 크기: 100ms 분량
-                this.bufferSize = Math.floor(this.sampleRate * 0.1);
-                this.buffer = [];
-                
-                console.log('AudioProcessor initialized:', {
-                    sampleRate: this.sampleRate,
-                    targetSampleRate: this.targetSampleRate,
-                    downsampleRatio: this.downsampleRatio,
-                    bufferSize: this.bufferSize
-                });
-            }
-            
-            process(inputs, outputs, parameters) {
-                const input = inputs[0];
-                if (input.length > 0) {
-                    const channelData = input[0]; // 모노 채널
-                    
-                    for (let i = 0; i < channelData.length; i++) {
-                        this.buffer.push(channelData[i]);
-                    }
-                    
-                    // 버퍼가 충분히 차면 다운샘플링하여 전송
-                    if (this.buffer.length >= this.bufferSize) {
-                        const downsampled = this.downsample(this.buffer, this.downsampleRatio);
-                        this.port.postMessage({
-                            type: 'audio',
-                            audio: downsampled
-                        });
-                        this.buffer = [];
-                    }
-                }
-                
-                return true;
-            }
-            
-            downsample(buffer, ratio) {
-                if (ratio === 1) {
-                    return new Float32Array(buffer);
-                }
-                
-                const length = Math.floor(buffer.length / ratio);
-                const result = new Float32Array(length);
-                
-                // 고품질 다운샘플링을 위한 평균 필터 사용
-                for (let i = 0; i < length; i++) {
-                    const start = i * ratio;
-                    let sum = 0;
-                    for (let j = 0; j < ratio; j++) {
-                        sum += buffer[start + j];
-                    }
-                    result[i] = sum / ratio;
-                }
-                
-                return result;
-            }
-        }
-        
-        registerProcessor('audio-processor', AudioProcessor);
-        `;
-
-        const blob = new Blob([processorCode], { type: 'application/javascript' });
-        return URL.createObjectURL(blob);
-    }
-
-    sendAudioData(audioData) {
-        if (!this.isConnected || !this.sessionId) {
+        if (this.isCallbackPath()) {
+            await this.handleCallbackLogin();
             return;
         }
 
-        // Float32Array를 Int16 PCM으로 변환
-        const pcmData = this.floatToPCM(audioData);
+        if (this.accessToken && this.refreshToken) {
+            await this.enterMainView();
+            return;
+        }
 
-        // Base64로 인코딩
-        const base64Audio = this.arrayBufferToBase64(pcmData.buffer);
+        this.enterAuthView("Google 로그인을 진행해주세요.");
+    }
 
-        // AUDIO_INPUT 메시지 전송
-        const message = {
-            type: 'AUDIO_INPUT',
-            payload: {
-                sessionId: this.sessionId,
-                data: base64Audio
+    isCallbackPath() {
+        return window.location.pathname === "/oauth/callback" || window.location.pathname === "/oauth/callback/";
+    }
+
+    loadTokens() {
+        return {
+            accessToken: localStorage.getItem(STORAGE_KEYS.accessToken) ?? "",
+            refreshToken: localStorage.getItem(STORAGE_KEYS.refreshToken) ?? ""
+        };
+    }
+
+    saveTokens(accessToken, refreshToken) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
+        localStorage.setItem(STORAGE_KEYS.refreshToken, refreshToken);
+    }
+
+    clearTokens() {
+        this.accessToken = "";
+        this.refreshToken = "";
+        localStorage.removeItem(STORAGE_KEYS.accessToken);
+        localStorage.removeItem(STORAGE_KEYS.refreshToken);
+    }
+
+    enterAuthView(statusMessage) {
+        this.authView.hidden = false;
+        this.appView.hidden = true;
+        this.setAuthStatus(statusMessage ?? "");
+        this.renderGoogleSignInButton();
+    }
+
+    async enterMainView() {
+        this.authView.hidden = true;
+        this.appView.hidden = false;
+        this.updateConnectionState("연결 안됨");
+        this.updateSessionBadges();
+
+        const memberNumber = this.extractMemberNumber(this.accessToken);
+        this.memberInfo.textContent = memberNumber ? `member: ${memberNumber}` : "member: -";
+
+        try {
+            await this.loadChatList();
+            if (this.chats.length > 0) {
+                await this.selectChat(this.chats[0].chatId);
+            } else {
+                this.prepareNewSession(true);
             }
+        } catch (error) {
+            console.error("[VoiceMapApp] failed to load chat list", error);
+            this.renderEmptyTranscript("채팅 목록을 불러오지 못했습니다. 다시 시도해주세요.");
+        }
+    }
+
+    setAuthStatus(message, isError = false) {
+        this.authStatus.textContent = message ?? "";
+        this.authStatus.style.color = isError ? "#be3f31" : "";
+    }
+
+    renderGoogleSignInButton() {
+        if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+            this.setAuthStatus("Google 스크립트를 불러오는 중입니다.");
+            window.setTimeout(() => this.renderGoogleSignInButton(), 300);
+            return;
+        }
+
+        this.googleSignInButton.innerHTML = "";
+
+        window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: (response) => this.onGoogleCredential(response)
+        });
+
+        window.google.accounts.id.renderButton(this.googleSignInButton, {
+            theme: "outline",
+            size: "large",
+            shape: "pill",
+            text: "signin_with",
+            width: 300
+        });
+
+        this.setAuthStatus("Google 로그인 버튼 준비 완료.");
+    }
+
+    onGoogleCredential(response) {
+        if (!response || !response.credential) {
+            this.setAuthStatus("Google 인증 토큰을 받지 못했습니다.", true);
+            return;
+        }
+
+        sessionStorage.setItem(STORAGE_KEYS.pendingGoogleIdToken, response.credential);
+        this.setAuthStatus("인증 완료. 콜백 페이지로 이동합니다.");
+        window.location.assign(GIS_REDIRECT_URI);
+    }
+
+    async handleCallbackLogin() {
+        this.enterAuthView("로그인 처리 중...");
+
+        const pendingToken = sessionStorage.getItem(STORAGE_KEYS.pendingGoogleIdToken) || "";
+        if (!pendingToken) {
+            this.setAuthStatus("콜백 토큰이 존재하지 않습니다. 다시 로그인해주세요.", true);
+            window.history.replaceState({}, "", APP_PAGE_PATH);
+            return;
+        }
+
+        try {
+            await this.loginOrRegisterWithGoogleToken(pendingToken);
+            sessionStorage.removeItem(STORAGE_KEYS.pendingGoogleIdToken);
+            window.history.replaceState({}, "", APP_PAGE_PATH);
+            await this.enterMainView();
+        } catch (error) {
+            console.error("[VoiceMapApp] callback login failed", error);
+            this.setAuthStatus(`로그인 실패: ${error.message}`, true);
+        }
+    }
+
+    async loginOrRegisterWithGoogleToken(googleIdToken) {
+        const loginResponse = await this.fetchJson("/auth/login", {
+            method: "POST",
+            auth: false,
+            body: {
+                provider: "GOOGLE",
+                providerToken: googleIdToken
+            }
+        });
+
+        if (loginResponse.status === 200) {
+            this.saveTokens(loginResponse.json.accessToken, loginResponse.json.refreshToken);
+            return;
+        }
+
+        if (loginResponse.status !== 404) {
+            throw new Error(`/auth/login 실패 (${loginResponse.status})`);
+        }
+
+        const email = this.extractEmailFromGoogleIdToken(googleIdToken);
+        if (!email) {
+            throw new Error("Google ID 토큰에서 이메일을 추출할 수 없습니다.");
+        }
+
+        const registerResponse = await this.fetchJson("/v1/register", {
+            method: "POST",
+            auth: false,
+            body: {
+                provider: "GOOGLE",
+                providerToken: googleIdToken,
+                email
+            }
+        });
+
+        if (registerResponse.status !== 200) {
+            throw new Error(`/v1/register 실패 (${registerResponse.status})`);
+        }
+
+        this.saveTokens(registerResponse.json.accessToken, registerResponse.json.refreshToken);
+    }
+
+    extractEmailFromGoogleIdToken(googleIdToken) {
+        try {
+            const payload = this.decodeJwtPayload(googleIdToken);
+            return payload.email ?? "";
+        } catch (error) {
+            console.error("[VoiceMapApp] failed to decode google id token", error);
+            return "";
+        }
+    }
+
+    extractMemberNumber(accessToken) {
+        try {
+            const payload = this.decodeJwtPayload(accessToken);
+            return payload.memberNumber ?? "";
+        } catch (error) {
+            return "";
+        }
+    }
+
+    decodeJwtPayload(token) {
+        const tokenParts = token.split(".");
+        if (tokenParts.length < 2) {
+            throw new Error("Invalid JWT token");
+        }
+        const base64 = tokenParts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+        const jsonString = atob(padded);
+        return JSON.parse(jsonString);
+    }
+
+    async loadChatList() {
+        const response = await this.fetchJson("/chats");
+        if (response.status !== 200) {
+            throw new Error(`채팅 목록 조회 실패 (${response.status})`);
+        }
+        this.chats = Array.isArray(response.json.chats) ? response.json.chats : [];
+        this.renderChatList();
+    }
+
+    renderChatList() {
+        this.chatList.innerHTML = "";
+
+        if (this.chats.length === 0) {
+            const emptyItem = document.createElement("li");
+            emptyItem.className = "chat-item-empty";
+            emptyItem.textContent = "아직 채팅이 없습니다.";
+            this.chatList.appendChild(emptyItem);
+            return;
+        }
+
+        this.chats.forEach((chat) => {
+            const item = document.createElement("li");
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "chat-item";
+            if (chat.chatId === this.activeChatId) {
+                button.classList.add("is-active");
+            }
+            button.textContent = chat.title || "제목 없음";
+            button.addEventListener("click", async () => {
+                await this.selectChat(chat.chatId);
+            });
+            item.appendChild(button);
+            this.chatList.appendChild(item);
+        });
+    }
+
+    async selectChat(chatId) {
+        this.activeChatId = chatId;
+        this.renderChatList();
+        this.chatTitle.textContent = this.chats.find((chat) => chat.chatId === chatId)?.title || "채팅 상세";
+        await this.loadChatDetails(chatId);
+    }
+
+    async loadChatDetails(chatId) {
+        const response = await this.fetchJson(`/chats/${encodeURIComponent(chatId)}`);
+        if (response.status !== 200) {
+            this.renderEmptyTranscript("채팅 상세를 불러오지 못했습니다.");
+            return;
+        }
+        const scripts = Array.isArray(response.json.scripts) ? response.json.scripts : [];
+        this.renderScriptHistory(scripts);
+    }
+
+    renderScriptHistory(scripts) {
+        this.transcriptPanel.innerHTML = "";
+        this.liveMessageRole = null;
+        this.liveMessageElement = null;
+
+        if (scripts.length === 0) {
+            this.renderEmptyTranscript("아직 스크립트가 없습니다. 녹음을 시작해보세요.");
+            return;
+        }
+
+        scripts.forEach((script) => {
+            this.appendMessage("USER", script.question ?? "");
+            if (script.answer) {
+                this.appendMessage("AGENT", script.answer);
+            }
+        });
+        this.scrollTranscriptToBottom();
+    }
+
+    renderEmptyTranscript(text) {
+        this.transcriptPanel.innerHTML = "";
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.innerHTML = `<p>${text}</p>`;
+        this.transcriptPanel.appendChild(empty);
+    }
+
+    prepareNewSession(skipRender = false) {
+        this.activeChatId = null;
+        this.chatTitle.textContent = "새 대화 준비 중";
+        this.renderChatList();
+        if (!skipRender) {
+            this.renderEmptyTranscript("녹음 시작 버튼을 누르면 새 음성 세션이 시작됩니다.");
+        }
+    }
+
+    async toggleRecording() {
+        if (this.isConnecting) {
+            return;
+        }
+        if (this.isRecording) {
+            await this.stopVoiceSession();
+            return;
+        }
+        await this.startVoiceSession();
+    }
+
+    async startVoiceSession() {
+        if (!this.accessToken) {
+            this.enterAuthView("로그인이 필요합니다.");
+            return;
+        }
+
+        this.isConnecting = true;
+        this.recordBtn.textContent = "연결 중...";
+        this.recordBtn.disabled = true;
+        this.updateConnectionState("WebSocket 연결 중...");
+        this.knownChatIdsBeforeSession = new Set(this.chats.map((chat) => chat.chatId));
+
+        try {
+            await this.openSocketAndInitializeSession();
+            await this.startMicrophone();
+            this.isRecording = true;
+            this.updateConnectionState("연결됨");
+            this.recordBtn.textContent = "녹음 중지";
+            this.recordBtn.disabled = false;
+        } catch (error) {
+            console.error("[VoiceMapApp] start voice session failed", error);
+            await this.stopVoiceSession();
+            this.updateConnectionState(`연결 실패: ${error.message}`);
+        } finally {
+            this.isConnecting = false;
+            if (!this.isRecording) {
+                this.recordBtn.textContent = "녹음 시작";
+                this.recordBtn.disabled = false;
+            }
+        }
+    }
+
+    async stopVoiceSession() {
+        await this.stopMicrophone();
+        await this.stopPlayback();
+        this.closeSocket();
+        this.isRecording = false;
+        this.sessionId = null;
+        this.updateConnectionState("연결 안됨");
+        this.updateSessionBadges();
+        this.recordBtn.textContent = "녹음 시작";
+        this.recordBtn.disabled = false;
+    }
+
+    openSocketAndInitializeSession() {
+        this.closeSocket();
+
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
+        const socket = new WebSocket(wsUrl);
+        this.ws = socket;
+
+        return new Promise((resolve, reject) => {
+            this.sessionReadyResolve = resolve;
+            this.sessionReadyReject = reject;
+            this.sessionReadyTimeoutId = window.setTimeout(() => {
+                this.rejectSessionReady(new Error("SESSION_READY 응답 시간 초과"));
+            }, 12000);
+
+            socket.onopen = () => {
+                if (this.ws !== socket) {
+                    return;
+                }
+                const initMessage = {
+                    type: "SESSION_INIT",
+                    payload: {
+                        token: this.accessToken,
+                        chatId: this.activeChatId
+                    }
+                };
+                socket.send(JSON.stringify(initMessage));
+            };
+
+            socket.onmessage = (event) => {
+                if (this.ws !== socket) {
+                    return;
+                }
+                this.handleSocketMessage(event.data);
+            };
+
+            socket.onerror = () => {
+                if (this.ws !== socket) {
+                    return;
+                }
+                this.rejectSessionReady(new Error("WebSocket 오류"));
+            };
+
+            socket.onclose = () => {
+                if (this.ws !== socket) {
+                    return;
+                }
+                this.ws = null;
+                const wasManual = this.manualSocketClose;
+                this.manualSocketClose = false;
+                if (!wasManual) {
+                    this.rejectSessionReady(new Error("WebSocket 연결이 종료되었습니다."));
+                    if (this.isRecording || this.isConnecting) {
+                        this.stopVoiceSession().catch((error) => console.error(error));
+                    }
+                }
+            };
+        });
+    }
+
+    rejectSessionReady(error) {
+        if (this.sessionReadyTimeoutId) {
+            window.clearTimeout(this.sessionReadyTimeoutId);
+            this.sessionReadyTimeoutId = null;
+        }
+        if (this.sessionReadyReject) {
+            this.sessionReadyReject(error);
+            this.sessionReadyResolve = null;
+            this.sessionReadyReject = null;
+        }
+    }
+
+    resolveSessionReady() {
+        if (this.sessionReadyTimeoutId) {
+            window.clearTimeout(this.sessionReadyTimeoutId);
+            this.sessionReadyTimeoutId = null;
+        }
+        if (this.sessionReadyResolve) {
+            this.sessionReadyResolve();
+            this.sessionReadyResolve = null;
+            this.sessionReadyReject = null;
+        }
+    }
+
+    closeSocket() {
+        if (!this.ws) {
+            return;
+        }
+        const socket = this.ws;
+        this.manualSocketClose = true;
+        this.ws = null;
+        try {
+            socket.close();
+        } catch (error) {
+            console.error("[VoiceMapApp] failed to close socket", error);
+        }
+        this.rejectSessionReady(new Error("WebSocket closed"));
+    }
+
+    handleSocketMessage(rawData) {
+        let message;
+        try {
+            message = JSON.parse(rawData);
+        } catch (error) {
+            console.error("[VoiceMapApp] invalid ws payload", rawData);
+            return;
+        }
+
+        const messageType = message.type;
+        const payload = message.payload || {};
+
+        switch (messageType) {
+            case "SESSION_READY":
+                this.sessionId = payload.sessionId || null;
+                this.updateSessionBadges();
+                this.resolveSessionReady();
+                break;
+            case "AUDIO_OUTPUT":
+                this.onAudioOutput(payload).catch((error) => console.error(error));
+                break;
+            case "TRANSCRIPT":
+                this.onTranscript(payload);
+                break;
+            case "INTERRUPTED":
+                this.onInterrupted();
+                break;
+            case "TURN_COMPLETED":
+                this.onTurnCompleted().catch((error) => console.error(error));
+                break;
+            default:
+                console.warn("[VoiceMapApp] unsupported message type", messageType);
+        }
+    }
+
+    onTranscript(payload) {
+        const role = payload.role === "USER" ? "USER" : "AGENT";
+        const text = typeof payload.text === "string" ? payload.text : "";
+        if (!text) {
+            return;
+        }
+
+        if (this.transcriptPanel.querySelector(".empty-state")) {
+            this.transcriptPanel.innerHTML = "";
+        }
+
+        if (this.liveMessageRole === role && this.liveMessageElement) {
+            const content = this.liveMessageElement.querySelector(".message-content");
+            content.textContent += text;
+        } else {
+            this.liveMessageElement = this.appendMessage(role, text);
+            this.liveMessageRole = role;
+        }
+        this.scrollTranscriptToBottom();
+    }
+
+    appendMessage(role, text) {
+        const message = document.createElement("article");
+        message.className = `message ${role === "USER" ? "message-user" : "message-agent"}`;
+
+        const roleLabel = document.createElement("div");
+        roleLabel.className = "message-role";
+        roleLabel.textContent = role === "USER" ? "사용자" : "AI";
+
+        const content = document.createElement("div");
+        content.className = "message-content";
+        content.textContent = text;
+
+        message.appendChild(roleLabel);
+        message.appendChild(content);
+        this.transcriptPanel.appendChild(message);
+        return message;
+    }
+
+    async onTurnCompleted() {
+        this.aiStatusBadge.textContent = "ai: idle";
+        this.liveMessageRole = null;
+        this.liveMessageElement = null;
+
+        await this.loadChatList();
+
+        if (!this.activeChatId) {
+            const createdChat = this.chats.find((chat) => !this.knownChatIdsBeforeSession.has(chat.chatId));
+            if (createdChat) {
+                await this.selectChat(createdChat.chatId);
+                return;
+            }
+            if (this.chats.length > 0) {
+                await this.selectChat(this.chats[0].chatId);
+            }
+            return;
+        }
+        await this.loadChatDetails(this.activeChatId);
+    }
+
+    onInterrupted() {
+        this.audioQueue = [];
+        this.audioSources.forEach((source) => {
+            try {
+                source.stop();
+            } catch (error) {
+                // no-op
+            }
+        });
+        this.audioSources = [];
+        this.isPlayingAudio = false;
+        this.nextStartTime = 0;
+        this.aiStatusBadge.textContent = "ai: interrupted";
+    }
+
+    async startMicrophone() {
+        this.micStatusBadge.textContent = "mic: requesting";
+        this.mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                channelCount: 1
+            }
+        });
+
+        this.micAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = this.micAudioContext.createMediaStreamSource(this.mediaStream);
+        const sourceSampleRate = this.micAudioContext.sampleRate;
+        const downsampleRatio = Math.max(1, Math.round(sourceSampleRate / 16000));
+
+        this.audioWorkletModuleUrl = this.createAudioProcessorBlobUrl();
+        await this.micAudioContext.audioWorklet.addModule(this.audioWorkletModuleUrl);
+
+        this.audioWorkletNode = new AudioWorkletNode(this.micAudioContext, "voicemap-audio-processor", {
+            processorOptions: {
+                sourceSampleRate,
+                targetSampleRate: 16000,
+                downsampleRatio
+            }
+        });
+
+        this.audioWorkletNode.port.onmessage = (event) => {
+            if (event.data.type !== "audio") {
+                return;
+            }
+            this.sendAudioChunk(event.data.audio);
         };
 
+        source.connect(this.audioWorkletNode);
+        this.micStatusBadge.textContent = "mic: recording";
+    }
+
+    async stopMicrophone() {
+        if (this.audioWorkletNode) {
+            try {
+                this.audioWorkletNode.disconnect();
+            } catch (error) {
+                // no-op
+            }
+            this.audioWorkletNode = null;
+        }
+
+        if (this.mediaStream) {
+            this.mediaStream.getTracks().forEach((track) => track.stop());
+            this.mediaStream = null;
+        }
+
+        if (this.micAudioContext) {
+            await this.micAudioContext.close();
+            this.micAudioContext = null;
+        }
+
+        if (this.audioWorkletModuleUrl) {
+            URL.revokeObjectURL(this.audioWorkletModuleUrl);
+            this.audioWorkletModuleUrl = null;
+        }
+
+        this.micStatusBadge.textContent = "mic: idle";
+    }
+
+    createAudioProcessorBlobUrl() {
+        const script = `
+            class VoiceMapAudioProcessor extends AudioWorkletProcessor {
+                constructor(options) {
+                    super();
+                    const cfg = options.processorOptions || {};
+                    this.sourceSampleRate = cfg.sourceSampleRate || 48000;
+                    this.targetSampleRate = cfg.targetSampleRate || 16000;
+                    this.downsampleRatio = cfg.downsampleRatio || 3;
+                    this.chunkSize = Math.floor(this.sourceSampleRate * 0.1);
+                    this.buffer = [];
+                }
+
+                process(inputs) {
+                    const input = inputs[0];
+                    if (!input || input.length === 0) {
+                        return true;
+                    }
+                    const channelData = input[0];
+                    for (let i = 0; i < channelData.length; i++) {
+                        this.buffer.push(channelData[i]);
+                    }
+
+                    if (this.buffer.length >= this.chunkSize) {
+                        const outputLength = Math.floor(this.buffer.length / this.downsampleRatio);
+                        const output = new Float32Array(outputLength);
+                        for (let i = 0; i < outputLength; i++) {
+                            const start = i * this.downsampleRatio;
+                            let sum = 0;
+                            for (let j = 0; j < this.downsampleRatio; j++) {
+                                sum += this.buffer[start + j];
+                            }
+                            output[i] = sum / this.downsampleRatio;
+                        }
+                        this.port.postMessage({ type: "audio", audio: output });
+                        this.buffer = [];
+                    }
+                    return true;
+                }
+            }
+
+            registerProcessor("voicemap-audio-processor", VoiceMapAudioProcessor);
+        `;
+        return URL.createObjectURL(new Blob([script], { type: "application/javascript" }));
+    }
+
+    sendAudioChunk(float32Array) {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.sessionId) {
+            return;
+        }
+        const pcm = this.floatToPcm16(float32Array);
+        const base64 = this.arrayBufferToBase64(pcm.buffer);
+        const message = {
+            type: "AUDIO_INPUT",
+            payload: {
+                data: base64
+            }
+        };
         this.ws.send(JSON.stringify(message));
     }
 
-    floatToPCM(float32Array) {
-        const int16Array = new Int16Array(float32Array.length);
+    floatToPcm16(float32Array) {
+        const output = new Int16Array(float32Array.length);
         for (let i = 0; i < float32Array.length; i++) {
-            // Float32 [-1.0, 1.0]을 Int16 [-32768, 32767]로 변환
-            const s = Math.max(-1, Math.min(1, float32Array[i]));
-            int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            const value = Math.max(-1, Math.min(1, float32Array[i]));
+            output[i] = value < 0 ? value * 0x8000 : value * 0x7fff;
         }
-        return int16Array;
+        return output;
     }
 
     arrayBufferToBase64(buffer) {
-        let binary = '';
+        let binary = "";
         const bytes = new Uint8Array(buffer);
-        const len = bytes.byteLength;
-        for (let i = 0; i < len; i++) {
+        for (let i = 0; i < bytes.length; i++) {
             binary += String.fromCharCode(bytes[i]);
         }
         return btoa(binary);
     }
 
-    async onAudioOutput(payload) {
-        try {
-            // AI 응답이 시작되면 사용자 메시지 턴 종료 (첫 번째 AUDIO_OUTPUT에만 적용)
-            if (this.currentMessageRole === 'USER') {
-                this.currentMessageElement = null;
-                this.currentMessageRole = null;
-            }
-
-            // payload 확인
-            if (!payload || !payload.base64Audio) {
-                console.error('Invalid payload:', payload);
-                return;
-            }
-
-            // Base64 디코딩
-            const audioData = this.base64ToArrayBuffer(payload.base64Audio);
-
-            console.log('Received audio output, size:', audioData.byteLength);
-
-            // 오디오 큐에 추가
-            this.audioQueue.push(audioData);
-
-            console.log('Audio queue length:', this.audioQueue.length, 'isPlayingAudio:', this.isPlayingAudio);
-
-            // 재생 중이 아니면 재생 시작
-            if (!this.isPlayingAudio) {
-                await this.playAudioQueue();
-            }
-        } catch (error) {
-            console.error('Error handling audio output:', error);
-        }
-    }
-
     base64ToArrayBuffer(base64) {
-        try {
-            const binaryString = atob(base64);
-            const len = binaryString.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            return bytes.buffer;
-        } catch (error) {
-            console.error('Error decoding base64:', error);
-            throw error;
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
         }
+        return bytes.buffer;
     }
 
-    onTurnComplete() {
-        console.log('Turn complete');
-        this.aiStatus.textContent = '대기 중';
-
-        // AI 응답 턴 종료
-        // 다음 TRANSCRIPT는 새로운 말풍선으로 시작
-        this.currentMessageElement = null;
-        this.currentMessageRole = null;
+    async onAudioOutput(payload) {
+        if (!payload || !payload.base64Audio) {
+            return;
+        }
+        this.aiStatusBadge.textContent = "ai: speaking";
+        this.audioQueue.push(this.base64ToArrayBuffer(payload.base64Audio));
+        // 청크 도착 타이밍이 느린 경우, isPlayingAudio는 true인데 실제 소스가 없을 수 있다.
+        if (!this.isPlayingAudio || this.audioSources.length === 0) {
+            await this.playAudioQueue();
+        }
     }
 
     async playAudioQueue() {
         if (this.audioQueue.length === 0) {
-            console.log('playAudioQueue: queue is empty');
+            this.isPlayingAudio = false;
+            this.nextStartTime = 0;
             return;
         }
 
-        // 첫 재생이면 상태 초기화
-        if (!this.isPlayingAudio) {
-            this.isPlayingAudio = true;
-            this.aiStatus.textContent = '응답 중 🔊';
-            this.nextStartTime = 0;
-            console.log('Starting new audio playback session');
+        this.isPlayingAudio = true;
+
+        if (!this.playbackAudioContext) {
+            this.playbackAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.playbackAudioContext.state === "suspended") {
+            await this.playbackAudioContext.resume();
         }
 
         const audioData = this.audioQueue.shift();
-        console.log('Scheduling audio chunk, size:', audioData.byteLength, 'queue remaining:', this.audioQueue.length);
+        const int16Array = new Int16Array(audioData);
+        const float32Array = new Float32Array(int16Array.length);
+        for (let i = 0; i < int16Array.length; i++) {
+            float32Array[i] = int16Array[i] / (int16Array[i] < 0 ? 0x8000 : 0x7fff);
+        }
 
-        try {
-            // 재생 전용 AudioContext가 없으면 생성 (브라우저 기본 샘플레이트 사용)
-            if (!this.playbackAudioContext) {
-                this.playbackAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-                console.log('Created playback AudioContext with sample rate:', this.playbackAudioContext.sampleRate);
-            }
+        const sourceSampleRate = 24000;
+        const targetSampleRate = this.playbackAudioContext.sampleRate;
+        const pcm = this.resample(float32Array, sourceSampleRate, targetSampleRate);
+        const audioBuffer = this.playbackAudioContext.createBuffer(1, pcm.length, targetSampleRate);
+        audioBuffer.getChannelData(0).set(pcm);
 
-            // AudioContext 상태 확인
-            if (this.playbackAudioContext.state === 'suspended') {
-                console.log('AudioContext suspended, resuming...');
-                await this.playbackAudioContext.resume();
-            }
-            console.log('AudioContext state:', this.playbackAudioContext.state);
+        const source = this.playbackAudioContext.createBufferSource();
+        const gain = this.playbackAudioContext.createGain();
+        gain.gain.value = 1.0;
+        source.buffer = audioBuffer;
+        source.connect(gain);
+        gain.connect(this.playbackAudioContext.destination);
 
-            // PCM Int16을 Float32로 변환
-            const int16Array = new Int16Array(audioData);
-            const float32Array = new Float32Array(int16Array.length);
-            for (let i = 0; i < int16Array.length; i++) {
-                float32Array[i] = int16Array[i] / (int16Array[i] < 0 ? 0x8000 : 0x7FFF);
-            }
+        const now = this.playbackAudioContext.currentTime;
+        if (this.nextStartTime < now) {
+            this.nextStartTime = now;
+        }
+        source.start(this.nextStartTime);
+        this.nextStartTime += audioBuffer.duration;
+        this.audioSources.push(source);
 
-            console.log('Converted to Float32, length:', float32Array.length);
-
-            // 24kHz 오디오를 브라우저 샘플레이트로 리샘플링
-            const sourceSampleRate = 24000;
-            const targetSampleRate = this.playbackAudioContext.sampleRate;
-            const resampledData = this.resampleAudio(float32Array, sourceSampleRate, targetSampleRate);
-
-            console.log('Resampled from', sourceSampleRate, 'to', targetSampleRate, ', new length:', resampledData.length);
-
-            // AudioBuffer 생성 (브라우저의 실제 샘플레이트 사용)
-            const audioBuffer = this.playbackAudioContext.createBuffer(1, resampledData.length, targetSampleRate);
-            audioBuffer.getChannelData(0).set(resampledData);
-
-            console.log('AudioBuffer created, duration:', audioBuffer.duration.toFixed(3), 'seconds');
-
-            // 재생 소스 생성 및 연결
-            const source = this.playbackAudioContext.createBufferSource();
-            source.buffer = audioBuffer;
-
-            // GainNode를 통해 볼륨 조절 가능하도록
-            const gainNode = this.playbackAudioContext.createGain();
-            gainNode.gain.value = 1.0; // 볼륨 1.0 (최대)
-
-            source.connect(gainNode);
-            gainNode.connect(this.playbackAudioContext.destination);
-
-            // 현재 시간과 다음 시작 시간 계산
-            const currentTime = this.playbackAudioContext.currentTime;
-
-            // nextStartTime이 0이거나 현재 시간보다 이전이면 현재 시간으로 리셋
-            if (this.nextStartTime === 0 || this.nextStartTime < currentTime) {
-                this.nextStartTime = currentTime;
-                console.log('Reset start time to current time:', currentTime.toFixed(3));
-            }
-
-            // 스케줄링된 시간에 재생 시작
-            console.log('Calling source.start at:', this.nextStartTime.toFixed(3), 'current:', currentTime.toFixed(3), 'delay:', (this.nextStartTime - currentTime).toFixed(3));
-            source.start(this.nextStartTime);
-            console.log('source.start() called successfully');
-
-            // 다음 청크의 시작 시간 설정 (현재 청크가 끝나는 시간)
-            this.nextStartTime += audioBuffer.duration;
-
-            this.audioSources.push(source);
-            console.log('Added to audioSources, total sources:', this.audioSources.length);
-
-            source.onended = () => {
-                console.log('Audio chunk ended');
-                // 재생 완료된 소스 제거
-                const index = this.audioSources.indexOf(source);
-                if (index > -1) {
-                    this.audioSources.splice(index, 1);
-                }
-
-                // 큐가 비어있고 모든 소스 재생 완료 시
-                if (this.audioQueue.length === 0 && this.audioSources.length === 0) {
-                    this.isPlayingAudio = false;
-                    this.nextStartTime = 0;
-                    this.aiStatus.textContent = '대기 중';
-                    console.log('All audio playback completed');
-                }
-            };
-
-            // 다음 청크 즉시 처리
+        source.onended = () => {
+            this.audioSources = this.audioSources.filter((audioSource) => audioSource !== source);
             if (this.audioQueue.length > 0) {
-                console.log('Processing next chunk immediately');
-                setTimeout(() => this.playAudioQueue(), 0);
+                window.setTimeout(() => this.playAudioQueue().catch((error) => console.error(error)), 0);
+                return;
             }
-
-        } catch (error) {
-            console.error('Error scheduling audio:', error);
-            console.error('Error stack:', error.stack);
-            // 에러 발생 시 다음 청크 시도
-            if (this.audioQueue.length > 0) {
-                setTimeout(() => this.playAudioQueue(), 0);
-            } else {
+            if (this.audioQueue.length === 0 && this.audioSources.length === 0) {
+                this.aiStatusBadge.textContent = "ai: idle";
                 this.isPlayingAudio = false;
                 this.nextStartTime = 0;
-                this.aiStatus.textContent = '대기 중';
             }
+        };
+
+        if (this.audioQueue.length > 0) {
+            window.setTimeout(() => this.playAudioQueue().catch((error) => console.error(error)), 0);
         }
     }
 
-    resampleAudio(sourceBuffer, sourceSampleRate, targetSampleRate) {
-        if (sourceSampleRate === targetSampleRate) {
-            return sourceBuffer;
+    resample(source, sourceRate, targetRate) {
+        if (sourceRate === targetRate) {
+            return source;
         }
-
-        const ratio = sourceSampleRate / targetSampleRate;
-        const newLength = Math.round(sourceBuffer.length / ratio);
-        const result = new Float32Array(newLength);
-
-        for (let i = 0; i < newLength; i++) {
+        const ratio = sourceRate / targetRate;
+        const outputLength = Math.round(source.length / ratio);
+        const output = new Float32Array(outputLength);
+        for (let i = 0; i < outputLength; i++) {
             const srcIndex = i * ratio;
-            const srcIndexInt = Math.floor(srcIndex);
-            const fraction = srcIndex - srcIndexInt;
-
-            // 선형 보간
-            if (srcIndexInt + 1 < sourceBuffer.length) {
-                result[i] = sourceBuffer[srcIndexInt] * (1 - fraction) + sourceBuffer[srcIndexInt + 1] * fraction;
+            const idx = Math.floor(srcIndex);
+            const frac = srcIndex - idx;
+            if (idx + 1 < source.length) {
+                output[i] = source[idx] * (1 - frac) + source[idx + 1] * frac;
             } else {
-                result[i] = sourceBuffer[srcIndexInt];
+                output[i] = source[idx];
             }
         }
-
-        return result;
+        return output;
     }
 
-    onTranscript(payload) {
-        console.log('Transcript:', payload.role, payload.text);
-
-        // 첫 번째 메시지인 경우 환영 메시지 제거
-        if (!this.currentMessageElement) {
-            const welcomeMsg = this.chatMessages.querySelector('.welcome-message');
-            if (welcomeMsg) {
-                welcomeMsg.remove();
-            }
-        }
-
-        // 같은 role의 메시지가 연속되는 경우, 이전 메시지에 추가
-        if (this.currentMessageRole === payload.role && this.currentMessageElement) {
-            const contentDiv = this.currentMessageElement.querySelector('.message-content');
-            // 줄바꿈 대신 공백으로 구분하여 자연스럽게 이어지도록
-            contentDiv.textContent += payload.text;
-
-            // 스크롤을 아래로
-            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-        } else {
-            // 새로운 메시지인 경우, 새로 생성
-            this.addMessage(payload.role, payload.text);
-        }
-
-        // 현재 메시지 정보 업데이트
-        this.currentMessageRole = payload.role;
-    }
-
-    onInterrupted() {
-        console.log('Interrupted');
-
-        // 현재 재생 중인 모든 오디오 소스 중단
-        for (const source of this.audioSources) {
+    async stopPlayback() {
+        this.audioQueue = [];
+        this.audioSources.forEach((source) => {
             try {
                 source.stop();
-            } catch (e) {
-                console.log('Audio source already stopped');
+            } catch (error) {
+                // no-op
             }
-        }
+        });
         this.audioSources = [];
-        this.currentAudioSource = null;
-
-        // 오디오 큐 비우기
-        this.audioQueue = [];
         this.isPlayingAudio = false;
         this.nextStartTime = 0;
-        this.aiStatus.textContent = '중단됨';
 
-        // 재생 컨텍스트는 유지 (다음 재생을 위해)
-    }
-
-    addMessage(role, text) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${role.toLowerCase()}`;
-
-        const roleLabel = document.createElement('div');
-        roleLabel.className = 'message-role';
-        roleLabel.textContent = role === 'USER' ? '사용자' : 'AI';
-
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
-        contentDiv.textContent = text;
-
-        messageDiv.appendChild(roleLabel);
-        messageDiv.appendChild(contentDiv);
-
-        this.chatMessages.appendChild(messageDiv);
-
-        // 스크롤을 아래로
-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-
-        // 현재 메시지 요소 업데이트
-        this.currentMessageElement = messageDiv;
-    }
-
-    onWebSocketError(error) {
-        console.error('WebSocket error:', error);
-        this.updateStatus('연결 오류', false);
-    }
-
-    onWebSocketClose() {
-        console.log('WebSocket closed');
-        this.disconnect();
-    }
-
-    disconnect() {
-        console.log('Disconnecting...');
-
-        // WebSocket 닫기
-        if (this.ws) {
-            this.ws.close();
-            this.ws = null;
-        }
-
-        // 마이크 중지
-        if (this.mediaStream) {
-            this.mediaStream.getTracks().forEach(track => track.stop());
-            this.mediaStream = null;
-        }
-
-        // 마이크 AudioWorklet 정리
-        if (this.audioWorkletNode) {
-            this.audioWorkletNode.disconnect();
-            this.audioWorkletNode = null;
-        }
-
-        // 마이크 AudioContext 정리
-        if (this.micAudioContext) {
-            this.micAudioContext.close();
-            this.micAudioContext = null;
-        }
-
-        // 현재 재생 중인 모든 오디오 소스 중단
-        for (const source of this.audioSources) {
-            try {
-                source.stop();
-            } catch (e) {
-                console.log('Audio source already stopped');
-            }
-        }
-        this.audioSources = [];
-        this.currentAudioSource = null;
-
-        // 재생 전용 AudioContext 정리
         if (this.playbackAudioContext) {
-            this.playbackAudioContext.close();
+            await this.playbackAudioContext.close();
             this.playbackAudioContext = null;
         }
-
-        // 상태 초기화
-        this.isConnected = false;
-        this.sessionId = null;
-        this.audioQueue = [];
-        this.isPlayingAudio = false;
-        this.nextStartTime = 0;
-
-        // UI 업데이트
-        this.updateStatus('연결 안됨', false);
-        this.connectBtn.disabled = false;
-        this.disconnectBtn.disabled = true;
-        this.sessionIdElement.textContent = '-';
-        this.micStatus.textContent = '대기 중';
-        this.aiStatus.textContent = '대기 중';
+        this.aiStatusBadge.textContent = "ai: idle";
     }
 
-    updateStatus(text, isConnected) {
-        this.statusText.textContent = text;
-        if (isConnected) {
-            this.statusIndicator.classList.add('connected');
-        } else {
-            this.statusIndicator.classList.remove('connected');
+    updateConnectionState(text) {
+        this.connectionState.textContent = text;
+    }
+
+    updateSessionBadges() {
+        this.sessionIdBadge.textContent = `session: ${this.sessionId || "-"}`;
+        if (!this.isRecording && !this.isConnecting) {
+            this.micStatusBadge.textContent = "mic: idle";
+            this.aiStatusBadge.textContent = "ai: idle";
+        }
+    }
+
+    scrollTranscriptToBottom() {
+        this.transcriptPanel.scrollTop = this.transcriptPanel.scrollHeight;
+    }
+
+    async logout() {
+        try {
+            if (this.refreshToken) {
+                await this.fetchJson("/auth/logout", {
+                    method: "POST",
+                    auth: false,
+                    body: { refreshToken: this.refreshToken }
+                });
+            }
+        } catch (error) {
+            console.error("[VoiceMapApp] logout request failed", error);
+        } finally {
+            await this.stopVoiceSession();
+            this.clearTokens();
+            this.chats = [];
+            this.activeChatId = null;
+            this.chatList.innerHTML = "";
+            this.renderEmptyTranscript("로그아웃되었습니다.");
+            this.enterAuthView("Google 로그인을 다시 진행해주세요.");
+        }
+    }
+
+    async fetchJson(path, options = {}) {
+        const response = await this.request(path, options);
+        let json = null;
+        const contentType = response.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+            json = await response.json();
+        }
+        return { status: response.status, json };
+    }
+
+    async request(path, options = {}) {
+        const {
+            method = "GET",
+            body = null,
+            auth = true,
+            retryOnUnauthorized = true
+        } = options;
+
+        const headers = {};
+        if (body !== null) {
+            headers["Content-Type"] = "application/json";
+        }
+        if (auth) {
+            headers.Authorization = `Bearer ${this.accessToken}`;
+        }
+
+        const response = await fetch(path, {
+            method,
+            headers,
+            body: body !== null ? JSON.stringify(body) : undefined
+        });
+
+        if (response.status === 401 && auth && retryOnUnauthorized) {
+            const refreshed = await this.rotateAccessToken();
+            if (refreshed) {
+                return this.request(path, { ...options, retryOnUnauthorized: false });
+            }
+        }
+        return response;
+    }
+
+    async rotateAccessToken() {
+        if (!this.refreshToken) {
+            return false;
+        }
+        try {
+            const response = await fetch("/auth/access", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ refreshToken: this.refreshToken })
+            });
+            if (response.status !== 200) {
+                return false;
+            }
+            const body = await response.json();
+            if (!body.accessToken) {
+                return false;
+            }
+            this.saveTokens(body.accessToken, body.refreshToken || this.refreshToken);
+            return true;
+        } catch (error) {
+            console.error("[VoiceMapApp] token refresh failed", error);
+            return false;
         }
     }
 }
 
-// 페이지 로드 시 초기화
-document.addEventListener('DOMContentLoaded', () => {
-    const client = new VoiceChatClient();
-    console.log('Voice Chat Client initialized');
+document.addEventListener("DOMContentLoaded", () => {
+    const app = new VoiceMapApp();
+    app.init().catch((error) => {
+        console.error("[VoiceMapApp] init failed", error);
+    });
 });
