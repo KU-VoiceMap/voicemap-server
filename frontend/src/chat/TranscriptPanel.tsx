@@ -23,10 +23,9 @@ export default function TranscriptPanel({ messages, emptyText }: TranscriptPanel
         </div>
       ) : (
         messages.map((msg) => (
-          <article key={msg.id} className={`message ${msg.role === 'USER' ? 'message-user' : 'message-agent'}`}>
-            <div className="message-role">{msg.role === 'USER' ? '사용자' : 'AI'}</div>
+          <div key={msg.id} className={`message ${msg.role === 'USER' ? 'message-user' : 'message-agent'}`}>
             <div className="message-content">{msg.text}</div>
-          </article>
+          </div>
         ))
       )}
     </div>

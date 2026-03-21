@@ -327,6 +327,8 @@ body {
 }
 
 .transcript-panel {
+    display: flex;
+    flex-direction: column;
     padding: 16px;
     overflow: auto;
     background: var(--bg-2);
@@ -702,40 +704,38 @@ body {
 }
 
 .message {
-    max-width: 78%;
-    margin-bottom: 11px;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+    max-width: 80%;
 }
 
-.message-role {
-    margin-bottom: 4px;
-    color: #667786;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+.message-user {
+    align-self: flex-end;
+}
+
+.message-agent {
+    align-self: flex-start;
 }
 
 .message-content {
-    border-radius: 12px;
-    padding: 10px 12px;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
 }
 
-.message-user {
-    margin-left: auto;
-}
-
 .message-user .message-content {
+    margin-left: auto;
+    width: fit-content;
+    border-radius: 14px;
+    padding: 10px 14px;
     background: var(--user-msg);
     color: #fff;
 }
 
 .message-agent .message-content {
-    background: var(--agent-msg);
-    color: #1f2b36;
-    border: 1px solid #d8e2ea;
+    color: var(--text-0);
 }
 
 .recorder-footer {
