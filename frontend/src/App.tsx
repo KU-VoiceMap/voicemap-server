@@ -6,6 +6,7 @@ import TranscriptPanel from './chat/TranscriptPanel';
 import RecorderFooter from './chat/RecorderFooter';
 import DocumentList from './document/DocumentList';
 import DocumentDetailView from './document/DocumentDetailView';
+import DocumentDetailModal from './document/DocumentDetailModal';
 import GraphView from './graph/GraphView';
 import ToastContainer from './components/Toast';
 import { createToast } from './components/toastUtils';
@@ -59,6 +60,8 @@ export default function App() {
   const [graphEdges, setGraphEdges] = useState<GraphEdge[]>([]);
   const [graphLoading, setGraphLoading] = useState(false);
   const [graphError, setGraphError] = useState<string | null>(null);
+  const [graphModalDocumentId, setGraphModalDocumentId] = useState<string | null>(null);
+  const [graphModalLoading, setGraphModalLoading] = useState(false);
 
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>('chats');
   const [mainView, setMainView] = useState<MainView>('chat');
@@ -217,6 +220,22 @@ export default function App() {
     }
   }, [fetchDocumentDetail, showToast]);
 
+  const handleGraphDocumentSelect = useCallback(async (documentId: string) => {
+    setGraphModalDocumentId(documentId);
+    setGraphModalLoading(true);
+    try {
+      await fetchDocumentDetail(documentId);
+    } catch {
+      showToast('문서 상세를 불러오지 못했습니다.', 'error');
+    } finally {
+      setGraphModalLoading(false);
+    }
+  }, [fetchDocumentDetail, showToast]);
+
+  const handleGraphModalClose = useCallback(() => {
+    setGraphModalDocumentId(null);
+  }, []);
+
   const handleNewSession = useCallback(() => {
     setActiveChatId(null);
     setMessages([]);
@@ -348,6 +367,7 @@ export default function App() {
     setMainView('chat');
     setGraphNodes([]);
     setGraphEdges([]);
+    setGraphModalDocumentId(null);
     setConnectionState('연결 안됨');
     setMicStatus('idle');
     setAiStatus('idle');
@@ -497,8 +517,27 @@ export default function App() {
               isLoading={graphLoading}
               error={graphError}
               documentDetails={documentDetails}
-              onSelectDocument={handleSelectDocument}
-            />
+              onSelectDocument={handleGraphDocumentSelect}
+            >
+              {graphModalDocumentId && (
+                <DocumentDetailModal
+                  detail={documentDetails.get(graphModalDocumentId) ?? null}
+                  isLoading={graphModalLoading}
+                  onClose={handleGraphModalClose}
+                  onNavigateToChat={(chatId) => {
+                    handleGraphModalClose();
+                    selectChat(chatId);
+                    setActiveSidebarTab('chats');
+                    setMainView('chat');
+                  }}
+                  onNavigateToDocument={(documentId) => {
+                    handleGraphModalClose();
+                    handleSelectDocument(documentId);
+                    setActiveSidebarTab('documents');
+                  }}
+                />
+              )}
+            </GraphView>
           )}
         </section>
       </section>

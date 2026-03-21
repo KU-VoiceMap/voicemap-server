@@ -34,6 +34,7 @@ interface GraphViewProps {
   error: string | null;
   documentDetails: Map<string, DocumentDetail>;
   onSelectDocument: (documentId: string) => void;
+  children?: React.ReactNode;
 }
 
 interface SimNode extends SimulationNodeDatum {
@@ -162,6 +163,7 @@ export default function GraphView({
   error,
   documentDetails,
   onSelectDocument,
+  children,
 }: GraphViewProps) {
   const layout = useMemo(() => {
     if (graphNodes.length === 0) return { nodes: [], edges: [] };
@@ -289,6 +291,7 @@ export default function GraphView({
           </ReactFlow>
         </GraphInteractionContext.Provider>
       </div>
+      {children}
     </div>
   );
 }
