@@ -30,8 +30,7 @@ class GeminiRealtimeClientTest {
         geminiProperties = new GeminiProperties(
             "test-key",
             new GeminiProperties.Urls("wss://gemini.test/ws", "https://doc.test", "https://chat.test"),
-            new GeminiProperties.Models("models/test-agent", "doc-model", "chat-model"),
-            new GeminiProperties.SystemInstructions("agent-inst", "doc-inst", "chat-inst", "summarizer-inst")
+            new GeminiProperties.Models("models/test-agent", "doc-model", "chat-model")
         );
         client = new GeminiRealtimeClient(webSocketClient, geminiProperties, new ObjectMapper());
         listener = mock(AiAgentListener.class);

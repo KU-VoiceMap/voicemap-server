@@ -35,8 +35,7 @@ class GeminiChatClientTest {
         geminiProperties = new GeminiProperties(
             API_KEY,
             new GeminiProperties.Urls("ws://agent", DOCUMENT_API_URL, CHAT_API_URL),
-            new GeminiProperties.Models("agent-model", "doc-model", "chat-model"),
-            new GeminiProperties.SystemInstructions("agent-inst", "doc-inst", "chat-inst", "summarizer-inst")
+            new GeminiProperties.Models("agent-model", "doc-model", "chat-model")
         );
 
         RestClient.Builder builder = RestClient.builder();

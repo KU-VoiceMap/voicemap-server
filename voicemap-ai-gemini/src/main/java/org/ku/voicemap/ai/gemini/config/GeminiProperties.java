@@ -6,8 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record GeminiProperties(
     String apiKey,
     Urls urls,
-    Models models,
-    SystemInstructions instructions
+    Models models
 ) {
     public record Urls(
         String agentWebSocketUrl,
@@ -19,12 +18,5 @@ public record GeminiProperties(
         String agentModel,
         String documentModel,
         String chatModel
-    ) {}
-
-    public record SystemInstructions(
-        String agent,
-        String document,
-        String chat,
-        String contextSummarizer
     ) {}
 }

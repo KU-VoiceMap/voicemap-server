@@ -48,10 +48,6 @@ gemini:
     agent-model: models/gemini-2.5-flash-native-audio-preview-12-2025
     document-model: gemini-2.5-flash
     chat-model: gemini-2.5-flash
-  instructions:
-    agent: you are kind.
-    document: you are kind.
-    chat: you are kind.
 ---
 
 spring:
@@ -111,7 +107,3 @@ gemini:
     agent-model: ${GEMINI_AGENT_MODEL}
     document-model: ${GEMINI_DOCUMENT_MODEL}
     chat-model: ${GEMINI_CHAT_MODEL}
-  instructions:
-    agent: ${GEMINI_INSTRUCTION_AGENT}
-    document: ${GEMINI_INSTRUCTION_DOCUMENT}
-    chat: ${GEMINI_INSTRUCTION_CHAT}
