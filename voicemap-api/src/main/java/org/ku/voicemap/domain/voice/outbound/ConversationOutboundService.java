@@ -6,11 +6,15 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.ku.voicemap.domain.chat.entity.Chat;
+import org.ku.voicemap.domain.chat.reposiotry.ChatRepository;
+import org.ku.voicemap.domain.chat.service.ChatTitleSummarizer;
 import org.ku.voicemap.domain.script.Script;
 import org.ku.voicemap.domain.script.ScriptRepository;
 import org.ku.voicemap.domain.voice.outbound.payload.AudioOutputPayload;
 import org.ku.voicemap.domain.voice.outbound.payload.ServerPayload;
 import org.ku.voicemap.domain.voice.outbound.payload.SessionReadyPayload;
+import org.ku.voicemap.domain.voice.outbound.payload.TitleUpdatedPayload;
 import org.ku.voicemap.domain.voice.outbound.payload.TranscriptPayload;
 import org.ku.voicemap.domain.voice.session.VoiceSession;
 import org.ku.voicemap.domain.voice.session.VoiceSessionRepository;
@@ -25,6 +29,8 @@ public class ConversationOutboundService {
 
     private final VoiceSessionRepository sessionRepository;
     private final ScriptRepository scriptRepository;
+    private final ChatRepository chatRepository;
+    private final ChatTitleSummarizer chatTitleSummarizer;
     private final ObjectMapper objectMapper;
 
     public void sendSessionReady(String sessionId) {
@@ -56,10 +62,33 @@ public class ConversationOutboundService {
         log.info("[USER]: {}", userTranscript);
         log.info("[AGENT]: {}", agentTranscript);
 
+        boolean isFirstTurn = scriptRepository.findAllByChatId(session.getChatId()).isEmpty();
+
         saveScript(session.getChatId(), userTranscript, agentTranscript);
         session.clearTranscript();
 
         send(sessionId, ServerMessageType.TURN_COMPLETED, Collections.emptyMap());
+
+        if (isFirstTurn && !userTranscript.isBlank()) {
+            generateAndUpdateTitle(sessionId, session.getChatId(), userTranscript, agentTranscript);
+        }
+    }
+
+    private void generateAndUpdateTitle(String sessionId, String chatId, String question, String answer) {
+        try {
+            String content = "[사용자]: " + question + "\n[AI]: " + answer;
+            String title = chatTitleSummarizer.summarize(content);
+
+            Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new IllegalArgumentException("Chat not found: " + chatId));
+            chat.updateTitle(title);
+            chatRepository.save(chat);
+
+            send(sessionId, ServerMessageType.TITLE_UPDATED, new TitleUpdatedPayload(chatId, title));
+            log.info("[Title Generated] chatId={}, title={}", chatId, title);
+        } catch (Exception e) {
+            log.error("[ConversationOutboundService] Failed to generate title for chatId={}", chatId, e);
+        }
     }
 
     private void saveScript(String chatId, String question, String answer) {

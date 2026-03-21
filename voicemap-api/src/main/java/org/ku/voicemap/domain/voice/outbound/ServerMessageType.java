@@ -6,5 +6,6 @@ public enum ServerMessageType {
     TRANSCRIPT,
     INTERRUPTED,
     TURN_COMPLETED,
+    TITLE_UPDATED,
     ;
 }

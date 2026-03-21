@@ -288,6 +288,11 @@ export default function App() {
             return [...prev, { id: messageIdRef.current++, role, text: payload.text }];
           });
         },
+        onTitleUpdated: (payload) => {
+          setChats((prev) =>
+            prev.map((c) => (c.chatId === payload.chatId ? { ...c, title: payload.title } : c)),
+          );
+        },
         onTurnCompleted: () => void handleTurnCompleted(),
         onInterrupted: () => {
           setAiStatus('interrupted');

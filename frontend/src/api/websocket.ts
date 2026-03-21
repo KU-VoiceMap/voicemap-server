@@ -11,10 +11,16 @@ export interface WsAudioOutputPayload {
   base64Audio: string;
 }
 
+export interface WsTitleUpdatedPayload {
+  chatId: string;
+  title: string;
+}
+
 export type WsMessageHandler = {
   onSessionReady: (payload: WsSessionReadyPayload) => void;
   onTranscript: (payload: WsTranscriptPayload) => void;
   onAudioOutput: (payload: WsAudioOutputPayload) => void;
+  onTitleUpdated: (payload: WsTitleUpdatedPayload) => void;
   onInterrupted: () => void;
   onTurnCompleted: () => void;
   onClose: (wasManual: boolean) => void;
@@ -90,6 +96,14 @@ const protocol = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:';
               text: String(payload.text ?? ''),
             };
             handler.onTranscript(transcriptPayload);
+            break;
+          }
+          case 'TITLE_UPDATED': {
+            const titlePayload: WsTitleUpdatedPayload = {
+              chatId: String(payload.chatId ?? ''),
+              title: String(payload.title ?? ''),
+            };
+            handler.onTitleUpdated(titlePayload);
             break;
           }
           case 'INTERRUPTED':

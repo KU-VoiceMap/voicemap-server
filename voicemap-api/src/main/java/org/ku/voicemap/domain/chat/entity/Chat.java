@@ -34,6 +34,16 @@ public class Chat {
     @Column(name = "title", length = TITLE_MAX_LENGTH, nullable = false)
     private String title;
 
+    public void updateTitle(String title) {
+        if (StringUtils.isBlank(title)) {
+            throw new IllegalArgumentException("채팅 제목은 필수 입력 사항입니다.");
+        }
+        if (title.length() > TITLE_MAX_LENGTH) {
+            throw new IllegalArgumentException("채팅 제목의 길이를 초과합니다.");
+        }
+        this.title = title;
+    }
+
     public Chat(String memberNumber, String title) {
         if (StringUtils.isBlank(memberNumber)) {
             throw new IllegalArgumentException("회원 번호는 필수 입력 사항입니다.");

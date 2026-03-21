@@ -1,9 +1,5 @@
 package org.ku.voicemap.domain.chat.service;
 
-import org.springframework.stereotype.Component;
-
-// TODO: Config로 관리
-@Component
 public class EllipsisTitleSummarizer implements ChatTitleSummarizer {
 
     private static final int MAX_LENGTH = 10;

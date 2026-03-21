@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { VoiceWebSocket } from '../api/websocket';
-import type { WsMessageHandler, WsTranscriptPayload, WsAudioOutputPayload } from '../api/websocket';
+import type { WsMessageHandler, WsTranscriptPayload, WsAudioOutputPayload, WsTitleUpdatedPayload } from '../api/websocket';
 
 function floatToPcm16(float32: Float32Array): Int16Array {
   const output = new Int16Array(float32.length);
@@ -88,6 +88,7 @@ function createAudioProcessorBlobUrl(): string {
 
 export interface VoiceSessionCallbacks {
   onTranscript: (payload: WsTranscriptPayload) => void;
+  onTitleUpdated: (payload: WsTitleUpdatedPayload) => void;
   onTurnCompleted: () => void;
   onInterrupted: () => void;
   onSessionReady: (sessionId: string) => void;
@@ -267,6 +268,7 @@ export function useVoiceSession() {
       onSessionReady: (payload) => callbacks.onSessionReady(payload.sessionId),
       onTranscript: (payload) => callbacks.onTranscript(payload),
       onAudioOutput: (payload) => { handleAudioOutput(payload).catch(console.error); },
+      onTitleUpdated: (payload) => callbacks.onTitleUpdated(payload),
       onInterrupted: handleInterrupted,
       onTurnCompleted: () => callbacks.onTurnCompleted(),
       onClose: (wasManual) => { if (!wasManual) callbacks.onConnectionLost(); },
