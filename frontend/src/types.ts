@@ -1,6 +1,7 @@
 export interface Chat {
   chatId: string;
   title: string;
+  lastInteractedAt: string;
 }
 
 export interface Message {

@@ -36,10 +36,10 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public MemberChatsResponse getMemberChats(String memberNumber) {
-        List<Chat> chats = chatRepository.findAllByMemberNumber(memberNumber);
+        List<Chat> chats = chatRepository.findAllByMemberNumberOrderByLastInteractedAtDesc(memberNumber);
         return new MemberChatsResponse(
             chats.stream()
-                .map(chat -> new MemberChatResponse(chat.getId(), chat.getTitle()))
+                .map(chat -> new MemberChatResponse(chat.getId(), chat.getTitle(), chat.getLastInteractedAt()))
                 .toList()
         );
     }

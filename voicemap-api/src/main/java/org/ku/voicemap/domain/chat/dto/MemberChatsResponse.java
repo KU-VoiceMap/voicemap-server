@@ -1,11 +1,12 @@
 package org.ku.voicemap.domain.chat.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record MemberChatsResponse(
     List<MemberChatResponse> chats
 ) {
 
-    public record MemberChatResponse(String chatId, String title) {
+    public record MemberChatResponse(String chatId, String title, LocalDateTime lastInteractedAt) {
     }
 }

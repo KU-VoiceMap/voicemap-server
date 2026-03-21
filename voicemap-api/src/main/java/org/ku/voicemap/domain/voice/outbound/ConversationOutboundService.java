@@ -109,6 +109,11 @@ public class ConversationOutboundService {
             script.answer(answer, now);
         }
         scriptRepository.save(script);
+
+        chatRepository.findById(chatId).ifPresent(chat -> {
+            chat.updateLastInteractedAt(now);
+            chatRepository.save(chat);
+        });
     }
 
     private void send(String sessionId, ServerMessageType type, Object payload) {

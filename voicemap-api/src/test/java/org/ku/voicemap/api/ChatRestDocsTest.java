@@ -83,8 +83,8 @@ class ChatRestDocsTest extends RestDocsTest {
         given(chatService.getMemberChats(MEMBER_NUMBER))
             .willReturn(new MemberChatsResponse(
                 List.of(
-                    new MemberChatResponse("chat-1", "강남 맛집 추천"),
-                    new MemberChatResponse("chat-2", "제주 여행 계획")
+                    new MemberChatResponse("chat-1", "강남 맛집 추천", LocalDateTime.of(2026, 2, 17, 12, 34, 56)),
+                    new MemberChatResponse("chat-2", "제주 여행 계획", LocalDateTime.of(2026, 2, 16, 10, 0, 0))
                 )
             ));
 
@@ -94,7 +94,8 @@ class ChatRestDocsTest extends RestDocsTest {
         FieldDescriptor[] responseFieldDescriptors = {
             fieldWithPath("chats[]").description("채팅 목록"),
             fieldWithPath("chats[].chatId").description("채팅 ID"),
-            fieldWithPath("chats[].title").description("채팅 제목")
+            fieldWithPath("chats[].title").description("채팅 제목"),
+            fieldWithPath("chats[].lastInteractedAt").description("마지막 대화 시각")
         };
 
         RestDocumentationResultHandler handler = document(

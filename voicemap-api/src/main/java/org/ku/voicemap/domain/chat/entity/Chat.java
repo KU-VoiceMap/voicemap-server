@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -34,6 +35,16 @@ public class Chat {
     @Column(name = "title", length = TITLE_MAX_LENGTH, nullable = false)
     private String title;
 
+    @Column(name = "last_interacted_at", nullable = false)
+    private LocalDateTime lastInteractedAt;
+
+    public void updateLastInteractedAt(LocalDateTime lastInteractedAt) {
+        if (lastInteractedAt == null) {
+            throw new IllegalArgumentException("마지막 대화 시각은 필수 입력 사항입니다.");
+        }
+        this.lastInteractedAt = lastInteractedAt;
+    }
+
     public void updateTitle(String title) {
         if (StringUtils.isBlank(title)) {
             throw new IllegalArgumentException("채팅 제목은 필수 입력 사항입니다.");
@@ -57,5 +68,6 @@ public class Chat {
         this.id = UUID.randomUUID().toString();
         this.memberNumber = memberNumber;
         this.title = title;
+        this.lastInteractedAt = LocalDateTime.now();
     }
 }

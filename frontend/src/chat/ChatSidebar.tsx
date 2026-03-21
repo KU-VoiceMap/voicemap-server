@@ -85,12 +85,12 @@ export default function ChatSidebar({
             ) : (
               chats.map((chat) => (
                 <li key={chat.chatId}>
-                  <button
+                    <button
                     type="button"
                     className={`chat-item${chat.chatId === activeChatId ? ' is-active' : ''}`}
                     onClick={() => onSelectChat(chat.chatId)}
                   >
-                    {chat.title || '제목 없음'}
+                    <span className="chat-item-title">{chat.title || '제목 없음'}</span>
                   </button>
                 </li>
               ))
@@ -126,5 +126,3 @@ export default function ChatSidebar({
     </aside>
   );
 }
-
-

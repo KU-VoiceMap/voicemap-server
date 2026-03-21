@@ -86,6 +86,13 @@ function createAudioProcessorBlobUrl(): string {
   return URL.createObjectURL(new Blob([script], { type: 'application/javascript' }));
 }
 
+/** 오디오 큐가 이 시간(초) 이상 쌓이면 playbackRate를 올리기 시작 */
+const QUEUE_THRESHOLD_SEC = 0.3;
+/** 최대 playbackRate — 너무 올리면 피치 변화가 눈에 띔 */
+const MAX_PLAYBACK_RATE = 1.2;
+/** playbackRate 보간 계수: 큐 1초당 rate 증가분 */
+const RATE_PER_SEC = 0.15;
+
 export interface VoiceSessionCallbacks {
   onTranscript: (payload: WsTranscriptPayload) => void;
   onTitleUpdated: (payload: WsTitleUpdatedPayload) => void;
@@ -108,6 +115,7 @@ export function useVoiceSession() {
   const nextStartTimeRef = useRef(0);
   const callbacksRef = useRef<VoiceSessionCallbacks | null>(null);
   const playAudioQueueRef = useRef<() => Promise<void>>(async () => {});
+  const transcriptTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const playAudioQueue = useCallback(async () => {
     if (isPlayingRef.current) return;
@@ -146,8 +154,14 @@ export function useVoiceSession() {
       if (nextStartTimeRef.current < now) {
         nextStartTimeRef.current = now;
       }
+
+      const queueDepthSec = nextStartTimeRef.current - now;
+      const excess = Math.max(0, queueDepthSec - QUEUE_THRESHOLD_SEC);
+      const rate = Math.min(MAX_PLAYBACK_RATE, 1 + excess * RATE_PER_SEC);
+      source.playbackRate.value = rate;
+
       source.start(nextStartTimeRef.current);
-      nextStartTimeRef.current += audioBuffer.duration;
+      nextStartTimeRef.current += audioBuffer.duration / rate;
       audioSourcesRef.current.push(source);
 
       source.onended = () => {
@@ -160,16 +174,22 @@ export function useVoiceSession() {
 
   useEffect(() => { playAudioQueueRef.current = playAudioQueue; }, [playAudioQueue]);
 
+  const clearTranscriptTimers = useCallback(() => {
+    transcriptTimersRef.current.forEach((id) => clearTimeout(id));
+    transcriptTimersRef.current = [];
+  }, []);
+
   const stopPlayback = useCallback(async () => {
     audioQueueRef.current = [];
     audioSourcesRef.current.forEach((s) => { try { s.stop(); } catch { /* already stopped */ } });
     audioSourcesRef.current = [];
     isPlayingRef.current = false;
     nextStartTimeRef.current = 0;
+    clearTranscriptTimers();
     if (playbackContextRef.current && playbackContextRef.current.state !== 'closed') {
       await playbackContextRef.current.suspend();
     }
-  }, []);
+  }, [clearTranscriptTimers]);
 
   const handleAudioOutput = useCallback(async (payload: WsAudioOutputPayload) => {
     if (!payload.base64Audio) return;
@@ -185,8 +205,9 @@ export function useVoiceSession() {
     audioSourcesRef.current = [];
     isPlayingRef.current = false;
     nextStartTimeRef.current = 0;
+    clearTranscriptTimers();
     callbacksRef.current?.onInterrupted();
-  }, []);
+  }, [clearTranscriptTimers]);
 
   const stopMicrophone = useCallback(async () => {
     if (workletNodeRef.current) {
@@ -246,6 +267,24 @@ export function useVoiceSession() {
     source.connect(workletNode);
   }, []);
 
+  const scheduleTranscript = useCallback((
+    payload: WsTranscriptPayload,
+    emit: (p: WsTranscriptPayload) => void,
+  ) => {
+    const ctx = playbackContextRef.current;
+    const queueDepthSec = ctx ? Math.max(0, nextStartTimeRef.current - ctx.currentTime) : 0;
+    const delayMs = queueDepthSec * 1000;
+    if (delayMs < 50) {
+      emit(payload);
+      return;
+    }
+    const timerId = setTimeout(() => {
+      emit(payload);
+      transcriptTimersRef.current = transcriptTimersRef.current.filter((id) => id !== timerId);
+    }, delayMs);
+    transcriptTimersRef.current.push(timerId);
+  }, []);
+
   const start = useCallback(async (
     accessToken: string,
     chatId: string | null,
@@ -255,7 +294,9 @@ export function useVoiceSession() {
 
     const handler: WsMessageHandler = {
       onSessionReady: (payload) => callbacks.onSessionReady(payload.sessionId),
-      onTranscript: (payload) => callbacks.onTranscript(payload),
+      onTranscript: (payload) => {
+        scheduleTranscript(payload, callbacks.onTranscript);
+      },
       onAudioOutput: (payload) => { handleAudioOutput(payload).catch(console.error); },
       onTitleUpdated: (payload) => callbacks.onTitleUpdated(payload),
       onInterrupted: handleInterrupted,
@@ -267,7 +308,7 @@ export function useVoiceSession() {
     const sessionId = await wsRef.current.connect(accessToken, chatId, handler);
     await startMicrophone(sessionId);
     return sessionId;
-  }, [startMicrophone, handleAudioOutput, handleInterrupted]);
+  }, [startMicrophone, handleAudioOutput, handleInterrupted, scheduleTranscript]);
 
   const stop = useCallback(async () => {
     await stopMicrophone();
