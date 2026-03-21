@@ -277,7 +277,7 @@ export default function GraphView({
             nodeTypes={nodeTypes}
             zIndexMode="manual"
             fitView
-            fitViewOptions={{ padding: 0.3 }}
+            fitViewOptions={{ padding: 1.5 }}
             minZoom={0.15}
             maxZoom={2.5}
             proOptions={{ hideAttribution: true }}
