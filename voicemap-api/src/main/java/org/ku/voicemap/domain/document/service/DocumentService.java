@@ -4,10 +4,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.ku.voicemap.ai.chat.AiChatClient;
+import org.ku.voicemap.ai.chat.DocumentResult;
+import org.ku.voicemap.config.AiInstructionProperties;
 import org.ku.voicemap.domain.chat.entity.Chat;
 import org.ku.voicemap.domain.chat.repository.ChatRepository;
-import org.ku.voicemap.domain.document.ai.DocumentAiClient;
-import org.ku.voicemap.domain.document.ai.DocumentAiResult;
 import org.ku.voicemap.domain.document.dto.CreateDocumentResponse;
 import org.ku.voicemap.domain.document.dto.DocumentDetailResponse;
 import org.ku.voicemap.domain.document.dto.DocumentGraphResponse;
@@ -35,7 +36,8 @@ public class DocumentService {
     private final DocumentKeywordRepository documentKeywordRepository;
     private final ScriptRepository scriptRepository;
     private final ChatRepository chatRepository;
-    private final DocumentAiClient documentAiClient;
+    private final AiChatClient aiChatClient;
+    private final AiInstructionProperties aiInstructionProperties;
 
     @Transactional
     public CreateDocumentResponse createDocument(String memberNumber, String chatId, LocalDateTime now) {
@@ -53,7 +55,16 @@ public class DocumentService {
         String conversationText = buildConversationText(scripts);
         List<String> existingKeywords = findMemberKeywords(memberNumber);
 
-        DocumentAiResult aiResult = documentAiClient.generate(conversationText, existingKeywords);
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("다음은 사용자와 AI의 대화 기록입니다. 이 대화를 바탕으로 문서를 작성하고 키워드를 추출해주세요.\n\n");
+        if (!existingKeywords.isEmpty()) {
+            prompt.append("[기존 키워드 목록]: ").append(String.join(", ", existingKeywords)).append("\n");
+            prompt.append("※ 가능하면 기존 키워드를 재사용하고, 새로운 개념만 신규 키워드로 추출하세요.\n\n");
+        }
+        prompt.append("[대화 기록]\n").append(conversationText);
+
+        String instruction = aiInstructionProperties.instructions().document();
+        DocumentResult aiResult = aiChatClient.generateDocument(instruction, prompt.toString(), existingKeywords);
 
         Document document = documentRepository.save(
                 new Document(chatId, memberNumber, aiResult.title(), aiResult.summary(), aiResult.content(), now)

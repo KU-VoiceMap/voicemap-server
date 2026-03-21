@@ -3,6 +3,8 @@ package org.ku.voicemap.domain.chat.service;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.ku.voicemap.ai.chat.AiChatClient;
+import org.ku.voicemap.config.AiInstructionProperties;
 import org.ku.voicemap.domain.chat.dto.ChatDetailsResponse;
 import org.ku.voicemap.domain.chat.dto.CreateChatRequest;
 import org.ku.voicemap.domain.chat.dto.CreateChatResponse;
@@ -22,15 +24,19 @@ public class ChatService {
 
     private final ChatRepository chatRepository;
     private final ScriptRepository scriptRepository;
-    private final ChatTitleSummarizer chatTitleSummarizer;
+    private final AiChatClient aiChatClient;
+    private final AiInstructionProperties aiInstructionProperties;
 
     @Transactional
     public CreateChatResponse createChat(String memberNumber, CreateChatRequest request) {
         Chat chat = chatRepository.save(new Chat(memberNumber, request.question()));
 
+        String instruction = aiInstructionProperties.instructions().chat();
+        String title = aiChatClient.generateTitle(instruction, request.question()).title();
+
         return new CreateChatResponse(
             chat.getId(),
-            chatTitleSummarizer.summarize(request.question())
+            title
         );
     }
 

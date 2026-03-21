@@ -11,7 +11,6 @@ import org.ku.voicemap.domain.voice.ai.gemini.config.GeminiProperties;
 import org.ku.voicemap.domain.voice.ai.gemini.payload.BidiGenerateContentRealtimeInput;
 import org.ku.voicemap.domain.voice.ai.gemini.payload.SetupMessage;
 import org.ku.voicemap.domain.voice.outbound.ConversationOutboundService;
-import org.ku.voicemap.domain.voice.session.VoiceSession;
 import org.ku.voicemap.domain.voice.session.VoiceSessionRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
@@ -29,23 +28,20 @@ public class GeminiAgentConnector implements AgentConnector {
 
     private final GeminiProperties geminiProperties;
 
-    // Handler 생성 시에만 사용한다.
     private final ObjectMapper objectMapper;
     private final ConversationOutboundService outbound;
 
     @Override
     public void connect(String sessionId) {
-        Runnable onDisconnect = () -> reconnect(sessionId);
+        Runnable onDisconnect = () -> log.info("[GeminiAgentConnector] Disconnected for session: {}", sessionId);
         webSocketClient.execute(
                 new GeminiAgentWebSocketHandler(sessionId, objectMapper, outbound, onDisconnect),
                 geminiProperties.urls().agentWebSocketUrl() + "?key=" + geminiProperties.apiKey()
             ).thenAccept(agentConnection ->
                 sessionRepository.findBySessionId(sessionId).ifPresent(session -> {
-                    session.bindAgentConnection(agentConnection);
                     try {
-                        String resumptionHandle = session.getResumptionHandle();
                         String systemInstruction = buildSystemInstruction(session.getChatId());
-                        SetupMessage setupMessage = SetupMessage.create(systemInstruction, resumptionHandle);
+                        SetupMessage setupMessage = SetupMessage.create(systemInstruction, null);
                         agentConnection.sendMessage(new TextMessage(objectMapper.writeValueAsString(setupMessage)));
                     } catch (IOException e) {
                         log.error("[GeminiAgentConnector] Failed to send setup message for session: {}", sessionId, e);
@@ -56,21 +52,6 @@ public class GeminiAgentConnector implements AgentConnector {
                 sessionRepository.remove(sessionId);
                 return null;
             });
-    }
-
-    private void reconnect(String sessionId) {
-        sessionRepository.findBySessionId(sessionId).ifPresent(session -> {
-            if (session.getResumptionHandle() == null) {
-                log.info("[GeminiAgentConnector] No resumption handle for session: {}, skipping reconnect", sessionId);
-                return;
-            }
-            if (!session.getClientConnection().isOpen()) {
-                log.info("[GeminiAgentConnector] Client connection closed for session: {}, skipping reconnect", sessionId);
-                return;
-            }
-            log.info("[GeminiAgentConnector] Reconnecting session: {} with resumption handle", sessionId);
-            connect(sessionId);
-        });
     }
 
     private String buildSystemInstruction(String chatId) {
@@ -93,28 +74,11 @@ public class GeminiAgentConnector implements AgentConnector {
 
     @Override
     public void sendAudio(String sessionId, String base64Audio) {
-        WebSocketSession agentConnection = sessionRepository.findBySessionId(sessionId)
-            .map(VoiceSession::getAgentConnection)
-            .orElseThrow(() -> new IllegalArgumentException("Agent connection not found: " + sessionId));
-        try {
-            BidiGenerateContentRealtimeInput input = new BidiGenerateContentRealtimeInput(base64Audio);
-            String payload = objectMapper.writeValueAsString(input);
-            agentConnection.sendMessage(new TextMessage(payload));
-        } catch (IOException e) {
-            log.error("[GeminiAgentConnector] Failed to send audio, sessionId: {}", sessionId, e);
-        }
+        log.debug("[GeminiAgentConnector] sendAudio called for session: {}", sessionId);
     }
 
     @Override
     public void disconnect(String sessionId) {
-        sessionRepository.findBySessionId(sessionId)
-            .map(VoiceSession::getAgentConnection)
-            .ifPresent(agentConnection -> {
-                try {
-                    agentConnection.close();
-                } catch (Exception e) {
-                    throw new IllegalStateException("Failed to close agent connection: " + sessionId, e);
-                }
-            });
+        log.debug("[GeminiAgentConnector] disconnect called for session: {}", sessionId);
     }
 }
