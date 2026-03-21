@@ -2,7 +2,6 @@ package org.ku.voicemap.domain.document.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ku.voicemap.domain.chat.entity.Chat;
@@ -20,10 +19,8 @@ import org.ku.voicemap.domain.document.dto.KeywordListResponse;
 import org.ku.voicemap.domain.document.dto.KeywordListResponse.KeywordSummary;
 import org.ku.voicemap.domain.document.entity.Document;
 import org.ku.voicemap.domain.document.entity.DocumentKeyword;
-import org.ku.voicemap.domain.document.entity.Keyword;
 import org.ku.voicemap.domain.document.repository.DocumentKeywordRepository;
 import org.ku.voicemap.domain.document.repository.DocumentRepository;
-import org.ku.voicemap.domain.document.repository.KeywordRepository;
 import org.ku.voicemap.domain.script.Script;
 import org.ku.voicemap.domain.script.ScriptRepository;
 import org.springframework.stereotype.Service;
@@ -35,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class DocumentService {
 
     private final DocumentRepository documentRepository;
-    private final KeywordRepository keywordRepository;
     private final DocumentKeywordRepository documentKeywordRepository;
     private final ScriptRepository scriptRepository;
     private final ChatRepository chatRepository;
@@ -82,10 +78,8 @@ public class DocumentService {
     public DocumentDetailResponse getDocument(String memberNumber, String documentId) {
         Document document = findDocumentByMember(memberNumber, documentId);
 
-        List<DocumentKeyword> documentKeywords = documentKeywordRepository.findAllByDocumentId(documentId);
-        List<Long> keywordIds = documentKeywords.stream().map(DocumentKeyword::getKeywordId).toList();
-        List<String> keywordNames = keywordRepository.findAllById(keywordIds).stream()
-                .map(Keyword::getName)
+        List<String> keywordNames = documentKeywordRepository.findAllByDocumentId(documentId).stream()
+                .map(DocumentKeyword::getName)
                 .toList();
 
         return new DocumentDetailResponse(
@@ -107,29 +101,25 @@ public class DocumentService {
             return new DocumentGraphResponse(List.of(), List.of());
         }
 
+        List<String> documentIds = documents.stream().map(Document::getId).toList();
+
         List<NodeResponse> documentNodes = documents.stream()
                 .map(doc -> new NodeResponse(doc.getId(), "DOCUMENT", doc.getTitle(), null))
                 .toList();
 
-        List<String> documentIds = documents.stream().map(Document::getId).toList();
+        List<DocumentKeyword> allDocumentKeywords = documentKeywordRepository.findAllByDocumentIdIn(documentIds);
 
-        List<DocumentKeyword> allDocumentKeywords = documentIds.stream()
-                .flatMap(docId -> documentKeywordRepository.findAllByDocumentId(docId).stream())
-                .toList();
-
-        List<Long> keywordIds = allDocumentKeywords.stream()
-                .map(DocumentKeyword::getKeywordId)
+        List<String> distinctKeywordNames = allDocumentKeywords.stream()
+                .map(DocumentKeyword::getName)
                 .distinct()
                 .toList();
 
-        List<Keyword> keywords = keywordRepository.findAllById(keywordIds);
-
-        List<NodeResponse> keywordNodes = keywords.stream()
-                .map(kw -> new NodeResponse(String.valueOf(kw.getId()), "KEYWORD", null, kw.getName()))
+        List<NodeResponse> keywordNodes = distinctKeywordNames.stream()
+                .map(name -> new NodeResponse(name, "KEYWORD", null, name))
                 .toList();
 
         List<EdgeResponse> edges = allDocumentKeywords.stream()
-                .map(dk -> new EdgeResponse(dk.getDocumentId(), dk.getKeywordId()))
+                .map(dk -> new EdgeResponse(dk.getDocumentId(), dk.getName()))
                 .toList();
 
         List<NodeResponse> allNodes = new java.util.ArrayList<>(documentNodes);
@@ -147,26 +137,22 @@ public class DocumentService {
             return new KeywordListResponse(List.of());
         }
 
-        List<DocumentKeyword> allDocumentKeywords = documentIds.stream()
-                .flatMap(docId -> documentKeywordRepository.findAllByDocumentId(docId).stream())
-                .toList();
+        List<DocumentKeyword> allDocumentKeywords = documentKeywordRepository.findAllByDocumentIdIn(documentIds);
 
-        List<Long> keywordIds = allDocumentKeywords.stream()
-                .map(DocumentKeyword::getKeywordId)
+        List<String> distinctKeywordNames = allDocumentKeywords.stream()
+                .map(DocumentKeyword::getName)
                 .distinct()
                 .toList();
 
-        List<Keyword> keywords = keywordRepository.findAllById(keywordIds);
-
         return new KeywordListResponse(
-                keywords.stream()
-                        .map(keyword -> {
+                distinctKeywordNames.stream()
+                        .map(name -> {
                             long documentCount = allDocumentKeywords.stream()
-                                    .filter(dk -> dk.getKeywordId().equals(keyword.getId()))
+                                    .filter(dk -> dk.getName().equals(name))
                                     .map(DocumentKeyword::getDocumentId)
                                     .distinct()
                                     .count();
-                            return new KeywordSummary(keyword.getId(), keyword.getName(), documentCount);
+                            return new KeywordSummary(name, documentCount);
                         })
                         .toList()
         );
@@ -192,24 +178,16 @@ public class DocumentService {
             return List.of();
         }
 
-        return documentIds.stream()
-                .flatMap(docId -> documentKeywordRepository.findAllByDocumentId(docId).stream())
-                .map(DocumentKeyword::getKeywordId)
-                .distinct()
-                .map(keywordId -> keywordRepository.findById(keywordId).orElse(null))
-                .filter(Objects::nonNull)
-                .map(Keyword::getName)
-                .toList();
+        return documentKeywordRepository.findDistinctNamesByDocumentIdIn(documentIds);
     }
 
     private List<String> saveKeywords(String documentId, List<String> keywordNames) {
         return keywordNames.stream()
                 .map(name -> {
-                    String normalized = name.trim().toLowerCase();
-                    Keyword keyword = keywordRepository.findByName(normalized)
-                            .orElseGet(() -> keywordRepository.save(new Keyword(normalized)));
-                    documentKeywordRepository.save(new DocumentKeyword(documentId, keyword.getId()));
-                    return keyword.getName();
+                    DocumentKeyword documentKeyword = documentKeywordRepository.save(
+                            new DocumentKeyword(documentId, name)
+                    );
+                    return documentKeyword.getName();
                 })
                 .toList();
     }

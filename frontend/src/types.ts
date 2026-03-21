@@ -35,7 +35,7 @@ export interface GraphNode {
 
 export interface GraphEdge {
   documentId: string;
-  keywordId: string;
+  keywordName: string;
 }
 
 export type SidebarTab = 'chats' | 'documents' | 'graph';

@@ -67,12 +67,12 @@ function computeLayout(
   const nodeIdSet = new Set(simNodes.map((n) => n.id));
 
   const validEdges = graphEdges.filter(
-    (e) => nodeIdSet.has(String(e.documentId)) && nodeIdSet.has(String(e.keywordId)),
+    (e) => nodeIdSet.has(String(e.documentId)) && nodeIdSet.has(String(e.keywordName)),
   );
 
   const simLinks: SimulationLinkDatum<SimNode>[] = validEdges.map((e) => ({
     source: String(e.documentId),
-    target: String(e.keywordId),
+    target: String(e.keywordName),
   }));
 
   const simulation = forceSimulation(simNodes)
@@ -91,7 +91,7 @@ function computeLayout(
 
   const keywordConnectionCounts = new Map<string, number>();
   for (const e of validEdges) {
-    const kid = String(e.keywordId);
+    const kid = String(e.keywordName);
     keywordConnectionCounts.set(kid, (keywordConnectionCounts.get(kid) ?? 0) + 1);
   }
 
@@ -132,11 +132,11 @@ function computeLayout(
   const rfEdges: Edge[] = validEdges.map((e, i) => ({
     id: `edge-${i}`,
     source: String(e.documentId),
-    target: String(e.keywordId),
+    target: String(e.keywordName),
     type: 'simplebezier',
     zIndex: EDGE_Z,
     style: EDGE_DEFAULT_STYLE,
-    data: { sourceId: String(e.documentId), targetId: String(e.keywordId) },
+    data: { sourceId: String(e.documentId), targetId: String(e.keywordName) },
   }));
 
   return { nodes: rfNodes, edges: rfEdges };
@@ -146,11 +146,11 @@ function buildAdjacency(graphEdges: GraphEdge[]): Map<string, Set<string>> {
   const adj = new Map<string, Set<string>>();
   for (const e of graphEdges) {
     const docId = String(e.documentId);
-    const kwId = String(e.keywordId);
+    const kwName = String(e.keywordName);
     if (!adj.has(docId)) adj.set(docId, new Set());
-    if (!adj.has(kwId)) adj.set(kwId, new Set());
-    adj.get(docId)!.add(kwId);
-    adj.get(kwId)!.add(docId);
+    if (!adj.has(kwName)) adj.set(kwName, new Set());
+    adj.get(docId)!.add(kwName);
+    adj.get(kwName)!.add(docId);
   }
   return adj;
 }

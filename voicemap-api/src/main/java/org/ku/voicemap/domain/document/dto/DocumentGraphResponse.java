@@ -17,7 +17,7 @@ public record DocumentGraphResponse(
 
     public record EdgeResponse(
         String documentId,
-        Long keywordId
+        String keywordName
     ) {
     }
 }

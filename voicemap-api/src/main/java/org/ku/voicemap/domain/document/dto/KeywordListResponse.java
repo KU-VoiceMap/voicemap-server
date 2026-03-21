@@ -7,7 +7,6 @@ public record KeywordListResponse(
 ) {
 
     public record KeywordSummary(
-        Long keywordId,
         String name,
         long documentCount
     ) {
