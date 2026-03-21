@@ -110,11 +110,8 @@ export function useVoiceSession() {
   const playAudioQueueRef = useRef<() => Promise<void>>(async () => {});
 
   const playAudioQueue = useCallback(async () => {
-    if (audioQueueRef.current.length === 0) {
-      isPlayingRef.current = false;
-      nextStartTimeRef.current = 0;
-      return;
-    }
+    if (isPlayingRef.current) return;
+    if (audioQueueRef.current.length === 0) return;
 
     isPlayingRef.current = true;
 
@@ -124,48 +121,41 @@ export function useVoiceSession() {
     }
 
     const ctx = playbackContextRef.current;
-    const audioData = audioQueueRef.current.shift()!;
-    const int16 = new Int16Array(audioData);
-    const float32 = new Float32Array(int16.length);
-    for (let i = 0; i < int16.length; i++) {
-      float32[i] = int16[i] / (int16[i] < 0 ? 0x8000 : 0x7fff);
-    }
 
-    const sourceSampleRate = 24000;
-    const pcm = resample(float32, sourceSampleRate, ctx.sampleRate);
-    const audioBuffer = ctx.createBuffer(1, pcm.length, ctx.sampleRate);
-    audioBuffer.getChannelData(0).set(pcm);
-
-    const source = ctx.createBufferSource();
-    const gain = ctx.createGain();
-    gain.gain.value = 1;
-    source.buffer = audioBuffer;
-    source.connect(gain);
-    gain.connect(ctx.destination);
-
-    const now = ctx.currentTime;
-    if (nextStartTimeRef.current < now) {
-      nextStartTimeRef.current = now;
-    }
-    source.start(nextStartTimeRef.current);
-    nextStartTimeRef.current += audioBuffer.duration;
-    audioSourcesRef.current.push(source);
-
-    source.onended = () => {
-      audioSourcesRef.current = audioSourcesRef.current.filter((s) => s !== source);
-      if (audioQueueRef.current.length > 0) {
-        setTimeout(() => { playAudioQueueRef.current().catch(console.error); }, 0);
-        return;
+    while (audioQueueRef.current.length > 0) {
+      const audioData = audioQueueRef.current.shift()!;
+      const int16 = new Int16Array(audioData);
+      const float32 = new Float32Array(int16.length);
+      for (let i = 0; i < int16.length; i++) {
+        float32[i] = int16[i] / (int16[i] < 0 ? 0x8000 : 0x7fff);
       }
-      if (audioQueueRef.current.length === 0 && audioSourcesRef.current.length === 0) {
-        isPlayingRef.current = false;
-        nextStartTimeRef.current = 0;
-      }
-    };
 
-    if (audioQueueRef.current.length > 0) {
-      setTimeout(() => { playAudioQueueRef.current().catch(console.error); }, 0);
+      const sourceSampleRate = 24000;
+      const pcm = resample(float32, sourceSampleRate, ctx.sampleRate);
+      const audioBuffer = ctx.createBuffer(1, pcm.length, ctx.sampleRate);
+      audioBuffer.getChannelData(0).set(pcm);
+
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      gain.gain.value = 1;
+      source.buffer = audioBuffer;
+      source.connect(gain);
+      gain.connect(ctx.destination);
+
+      const now = ctx.currentTime;
+      if (nextStartTimeRef.current < now) {
+        nextStartTimeRef.current = now;
+      }
+      source.start(nextStartTimeRef.current);
+      nextStartTimeRef.current += audioBuffer.duration;
+      audioSourcesRef.current.push(source);
+
+      source.onended = () => {
+        audioSourcesRef.current = audioSourcesRef.current.filter((s) => s !== source);
+      };
     }
+
+    isPlayingRef.current = false;
   }, []);
 
   useEffect(() => { playAudioQueueRef.current = playAudioQueue; }, [playAudioQueue]);
@@ -176,16 +166,15 @@ export function useVoiceSession() {
     audioSourcesRef.current = [];
     isPlayingRef.current = false;
     nextStartTimeRef.current = 0;
-    if (playbackContextRef.current) {
-      await playbackContextRef.current.close();
-      playbackContextRef.current = null;
+    if (playbackContextRef.current && playbackContextRef.current.state !== 'closed') {
+      await playbackContextRef.current.suspend();
     }
   }, []);
 
   const handleAudioOutput = useCallback(async (payload: WsAudioOutputPayload) => {
     if (!payload.base64Audio) return;
     audioQueueRef.current.push(base64ToArrayBuffer(payload.base64Audio));
-    if (!isPlayingRef.current || audioSourcesRef.current.length === 0) {
+    if (!isPlayingRef.current) {
       await playAudioQueue();
     }
   }, [playAudioQueue]);
