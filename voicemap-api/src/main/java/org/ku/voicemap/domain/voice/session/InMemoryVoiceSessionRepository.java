@@ -48,15 +48,6 @@ public class InMemoryVoiceSessionRepository implements VoiceSessionRepository {
         } catch (Exception e) {
             log.error("Failed to close client connection: {}", sessionId, e);
         }
-
-        WebSocketSession agentConnection = session.getAgentConnection();
-        if (agentConnection != null) {
-            try {
-                agentConnection.close();
-            } catch (Exception e) {
-                log.error("Failed to close agent connection: {}", sessionId, e);
-            }
-        }
     }
 }
 

@@ -14,8 +14,6 @@ public class VoiceSession {
     private final String memberNumber;
     private final String chatId;
     private final WebSocketSession clientConnection;
-    private volatile WebSocketSession agentConnection;
-    private volatile String resumptionHandle;
     private final Map<ConversationRole, StringBuilder> transcripts = new ConcurrentHashMap<>();
 
     public VoiceSession(String memberNumber, String chatId, WebSocketSession clientConnection) {
@@ -23,14 +21,6 @@ public class VoiceSession {
         this.memberNumber = memberNumber;
         this.chatId = chatId;
         this.clientConnection = clientConnection;
-    }
-
-    public void bindAgentConnection(WebSocketSession agentConnection) {
-        this.agentConnection = agentConnection;
-    }
-
-    public void updateResumptionHandle(String handle) {
-        this.resumptionHandle = handle;
     }
 
     public synchronized void appendTranscript(ConversationRole role, String text) {
@@ -46,4 +36,3 @@ public class VoiceSession {
         transcripts.clear();
     }
 }
-
