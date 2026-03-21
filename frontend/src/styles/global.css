@@ -329,7 +329,7 @@ body {
 .transcript-panel {
     display: flex;
     flex-direction: column;
-    padding: 16px;
+    padding: 16px 28px;
     overflow: auto;
     background: var(--bg-2);
 }
@@ -706,7 +706,7 @@ body {
 .message {
     display: flex;
     flex-direction: column;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
     max-width: 80%;
 }
 
@@ -729,9 +729,9 @@ body {
     margin-left: auto;
     width: fit-content;
     border-radius: 14px;
-    padding: 10px 14px;
-    background: var(--user-msg);
-    color: #fff;
+    padding: 6px 10px;
+    background: #e8f4f2;
+    color: var(--text-0);
 }
 
 .message-agent .message-content {
