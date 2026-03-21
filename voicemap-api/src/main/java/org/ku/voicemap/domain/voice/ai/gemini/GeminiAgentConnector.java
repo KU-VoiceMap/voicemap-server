@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.ku.voicemap.domain.chat.entity.ChatContext;
+import org.ku.voicemap.domain.chat.reposiotry.ChatContextRepository;
 import org.ku.voicemap.domain.voice.ai.AgentConnector;
 import org.ku.voicemap.domain.voice.ai.gemini.config.GeminiProperties;
 import org.ku.voicemap.domain.voice.ai.gemini.payload.BidiGenerateContentRealtimeInput;
@@ -23,6 +25,7 @@ public class GeminiAgentConnector implements AgentConnector {
 
     private final WebSocketClient webSocketClient;
     private final VoiceSessionRepository sessionRepository;
+    private final ChatContextRepository chatContextRepository;
 
     private final GeminiProperties geminiProperties;
 
@@ -41,7 +44,8 @@ public class GeminiAgentConnector implements AgentConnector {
                     session.bindAgentConnection(agentConnection);
                     try {
                         String resumptionHandle = session.getResumptionHandle();
-                        SetupMessage setupMessage = SetupMessage.create(geminiProperties.instructions().agent(), resumptionHandle);
+                        String systemInstruction = buildSystemInstruction(session.getChatId());
+                        SetupMessage setupMessage = SetupMessage.create(systemInstruction, resumptionHandle);
                         agentConnection.sendMessage(new TextMessage(objectMapper.writeValueAsString(setupMessage)));
                     } catch (IOException e) {
                         log.error("[GeminiAgentConnector] Failed to send setup message for session: {}", sessionId, e);
@@ -67,6 +71,24 @@ public class GeminiAgentConnector implements AgentConnector {
             log.info("[GeminiAgentConnector] Reconnecting session: {} with resumption handle", sessionId);
             connect(sessionId);
         });
+    }
+
+    private String buildSystemInstruction(String chatId) {
+        String baseInstruction = geminiProperties.instructions().agent();
+        String chatContext = chatContextRepository.findFirstByChatIdOrderByCreatedAtDesc(chatId)
+            .map(ChatContext::getContext)
+            .orElse(null);
+
+        if (chatContext == null || chatContext.isBlank()) {
+            return baseInstruction;
+        }
+
+        return baseInstruction + "\n\n---\n"
+            + "## 이전 대화 맥락\n"
+            + "이 사용자와 이전에 아이디어 빌딩을 진행한 기록입니다.\n"
+            + "자연스럽게 이어서 대화하세요. 이전에 내려진 결정은 존중하되, "
+            + "사용자가 방향을 바꾸고 싶어하면 유연하게 수용하세요.\n\n"
+            + chatContext + "\n---";
     }
 
     @Override
