@@ -2,6 +2,7 @@ package org.ku.voicemap.ai.gemini.realtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.net.URI;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.ku.voicemap.ai.gemini.config.GeminiProperties;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.WebSocketClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @Slf4j
 @Component
@@ -91,9 +93,12 @@ public class GeminiRealtimeClient implements AiRealtimeClient {
             sessionId, objectMapper, state.listener(), onDisconnect, onResumptionHandle
         );
 
-        String url = geminiProperties.urls().agentWebSocketUrl() + "?key=" + geminiProperties.apiKey();
+        URI uri = UriComponentsBuilder.fromUriString(geminiProperties.urls().agentWebSocketUrl())
+            .queryParam("key", geminiProperties.apiKey())
+            .build()
+            .toUri();
 
-        webSocketClient.execute(handler, url)
+        webSocketClient.execute(handler, null, uri)
             .thenAccept(connection -> {
                 sessions.computeIfPresent(sessionId, (id, s) -> s.withConnection(connection));
                 try {

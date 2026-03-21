@@ -11,10 +11,12 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.WebSocketClient;
 
+import java.net.URI;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 class GeminiRealtimeClientTest {
@@ -38,14 +40,16 @@ class GeminiRealtimeClientTest {
 
     @Test
     void connect_callsWebSocketClientWithCorrectUrl() {
-        when(webSocketClient.execute(any(WebSocketHandler.class), any(String.class)))
+        URI expectedUri = URI.create("wss://gemini.test/ws?key=test-key");
+        when(webSocketClient.execute(any(WebSocketHandler.class), isNull(), any(URI.class)))
             .thenReturn(new CompletableFuture<>());
 
         client.connect("session-1", "test instruction", listener);
 
         verify(webSocketClient).execute(
             any(GeminiWebSocketHandler.class),
-            contains("wss://gemini.test/ws?key=test-key")
+            isNull(),
+            eq(expectedUri)
         );
     }
 

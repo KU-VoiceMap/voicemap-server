@@ -13,7 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -69,49 +71,37 @@ public class GeminiChatClient implements AiChatClient {
 
     @Override
     public ChatTitleResult generateTitle(String systemInstruction, String prompt) {
-        String url = geminiProperties.urls().chatApiUrl() + "?key=" + geminiProperties.apiKey();
-        GeminiChatRequest request = GeminiChatRequest.of(systemInstruction, prompt, TITLE_SCHEMA);
-        String text = callGemini(url, request).extractText();
-
-        try {
-            return objectMapper.readValue(text, ChatTitleResult.class);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to parse generateTitle response", e);
-        }
+        return chat(geminiProperties.urls().chatApiUrl(), systemInstruction, prompt, TITLE_SCHEMA, ChatTitleResult.class);
     }
 
     @Override
     public IdeaContextResult summarizeContext(String systemInstruction, String prompt) {
-        String url = geminiProperties.urls().chatApiUrl() + "?key=" + geminiProperties.apiKey();
-        GeminiChatRequest request = GeminiChatRequest.of(systemInstruction, prompt, CONTEXT_SCHEMA);
-        String text = callGemini(url, request).extractText();
-
-        try {
-            return objectMapper.readValue(text, IdeaContextResult.class);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to parse summarizeContext response", e);
-        }
+        return chat(geminiProperties.urls().chatApiUrl(), systemInstruction, prompt, CONTEXT_SCHEMA, IdeaContextResult.class);
     }
 
     @Override
     public DocumentResult generateDocument(String systemInstruction, String prompt, List<String> existingKeywords) {
-        String url = geminiProperties.urls().documentApiUrl() + "?key=" + geminiProperties.apiKey();
-        GeminiChatRequest request = GeminiChatRequest.of(systemInstruction, prompt, DOCUMENT_SCHEMA);
-        String text = callGemini(url, request).extractText();
-
-        try {
-            return objectMapper.readValue(text, DocumentResult.class);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to parse generateDocument response", e);
-        }
+        return chat(geminiProperties.urls().documentApiUrl(), systemInstruction, prompt, DOCUMENT_SCHEMA, DocumentResult.class);
     }
 
-    private GeminiChatResponse callGemini(String url, GeminiChatRequest request) {
-        return restClient.post()
-            .uri(url)
+    private <T> T chat(String baseUrl, String systemInstruction, String prompt,
+                       Map<String, Object> schema, Class<T> resultType) {
+        URI uri = UriComponentsBuilder.fromUriString(baseUrl)
+            .queryParam("key", geminiProperties.apiKey())
+            .build()
+            .toUri();
+        GeminiChatRequest request = GeminiChatRequest.of(systemInstruction, prompt, schema);
+        GeminiChatResponse response = restClient.post()
+            .uri(uri)
             .contentType(MediaType.APPLICATION_JSON)
             .body(request)
             .retrieve()
             .body(GeminiChatResponse.class);
+
+        try {
+            return objectMapper.readValue(response.extractText(), resultType);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to parse " + resultType.getSimpleName() + " response", e);
+        }
     }
 }
