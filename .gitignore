@@ -80,5 +80,9 @@ replay_pid*
 Thumbs.db
 
 
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
 # Miscellaneous
 HELP.md

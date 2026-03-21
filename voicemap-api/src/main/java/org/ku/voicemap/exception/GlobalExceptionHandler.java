@@ -1,6 +1,7 @@
 package org.ku.voicemap.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.ku.voicemap.domain.auth.service.InvalidTokenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,8 +21,17 @@ public class GlobalExceptionHandler {
             .body(errorResponse);
     }
 
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidTokenException(InvalidTokenException e) {
+        ErrorResponse errorResponse = new ErrorResponse(e);
+        log.warn("Authentication failed: {}", e.getMessage());
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(errorResponse);
+    }
+
     @ExceptionHandler(VoiceMapException.class)
-    public ResponseEntity<ErrorResponse> handleOotdException(VoiceMapException e) {
+    public ResponseEntity<ErrorResponse> handleVoiceMapException(VoiceMapException e) {
         HttpStatus status = determineHttpStatus(e);
         ErrorResponse response = new ErrorResponse(e);
 
