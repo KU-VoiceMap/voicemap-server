@@ -9,6 +9,7 @@ import org.ku.voicemap.ai.gemini.payload.BidiGenerateContentRealtimeInput;
 import org.ku.voicemap.ai.gemini.payload.SetupMessage;
 import org.ku.voicemap.ai.realtime.AiAgentListener;
 import org.ku.voicemap.ai.realtime.AiRealtimeClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -24,6 +25,7 @@ public class GeminiRealtimeClient implements AiRealtimeClient {
 
     private final ConcurrentHashMap<String, SessionState> sessions = new ConcurrentHashMap<>();
 
+    @Autowired
     public GeminiRealtimeClient(WebSocketClient webSocketClient,
                                 GeminiProperties geminiProperties,
                                 ObjectMapper objectMapper) {

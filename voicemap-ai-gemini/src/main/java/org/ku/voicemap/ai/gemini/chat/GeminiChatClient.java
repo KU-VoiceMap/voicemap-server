@@ -8,6 +8,7 @@ import org.ku.voicemap.ai.chat.ChatTitleResult;
 import org.ku.voicemap.ai.chat.DocumentResult;
 import org.ku.voicemap.ai.chat.IdeaContextResult;
 import org.ku.voicemap.ai.gemini.config.GeminiProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -23,6 +24,7 @@ public class GeminiChatClient implements AiChatClient {
     private final GeminiProperties geminiProperties;
     private final ObjectMapper objectMapper;
 
+    @Autowired
     public GeminiChatClient(GeminiProperties geminiProperties, ObjectMapper objectMapper) {
         this.restClient = RestClient.create();
         this.geminiProperties = geminiProperties;
