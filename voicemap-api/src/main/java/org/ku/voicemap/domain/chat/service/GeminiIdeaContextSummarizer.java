@@ -14,17 +14,6 @@ import org.springframework.web.client.RestClient;
 @Component
 public class GeminiIdeaContextSummarizer implements IdeaContextSummarizer {
 
-    private static final String SYSTEM_INSTRUCTION = """
-            당신은 아이디어 빌딩 대화의 진행 상태를 요약하는 AI입니다.
-
-            규칙:
-            1. 반드시 한국어로 작성하세요.
-            2. 아래 형식을 정확히 따르세요.
-            3. 300자 이내로 간결하게 작성하세요.
-            4. 이전 요약이 있으면 새 대화 내용을 반영하여 갱신하세요.
-            5. 이전 요약이 없으면 대화 내용만으로 새로 작성하세요.
-            """;
-
     private final RestClient restClient;
     private final GeminiProperties geminiProperties;
     private final ObjectMapper objectMapper;
@@ -68,7 +57,7 @@ public class GeminiIdeaContextSummarizer implements IdeaContextSummarizer {
 
         return Map.of(
             "systemInstruction", Map.of(
-                "parts", List.of(Map.of("text", SYSTEM_INSTRUCTION))
+                "parts", List.of(Map.of("text", geminiProperties.instructions().contextSummarizer()))
             ),
             "contents", List.of(
                 Map.of("parts", List.of(Map.of("text", prompt.toString())))

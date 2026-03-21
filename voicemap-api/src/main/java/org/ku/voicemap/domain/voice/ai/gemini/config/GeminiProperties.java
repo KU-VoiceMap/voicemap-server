@@ -24,6 +24,7 @@ public record GeminiProperties(
     public record SystemInstructions(
         String agent,
         String document,
-        String chat
+        String chat,
+        String contextSummarizer
     ) {}
 }
