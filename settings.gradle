@@ -1,3 +1,4 @@
 rootProject.name = 'voicemap'
 
 include "voicemap-api"
+include "voicemap-ai-core"
