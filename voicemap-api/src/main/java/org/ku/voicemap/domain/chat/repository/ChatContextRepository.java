@@ -1,4 +1,4 @@
-package org.ku.voicemap.domain.chat.reposiotry;
+package org.ku.voicemap.domain.chat.repository;
 
 import java.util.Optional;
 import org.ku.voicemap.domain.chat.entity.ChatContext;

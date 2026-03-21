@@ -5,7 +5,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ku.voicemap.domain.chat.entity.Chat;
-import org.ku.voicemap.domain.chat.reposiotry.ChatRepository;
+import org.ku.voicemap.domain.chat.repository.ChatRepository;
 import org.ku.voicemap.domain.document.ai.DocumentAiClient;
 import org.ku.voicemap.domain.document.ai.DocumentAiResult;
 import org.ku.voicemap.domain.document.dto.CreateDocumentResponse;

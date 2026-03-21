@@ -5,7 +5,7 @@ import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ku.voicemap.domain.chat.entity.ChatContext;
-import org.ku.voicemap.domain.chat.reposiotry.ChatContextRepository;
+import org.ku.voicemap.domain.chat.repository.ChatContextRepository;
 import org.ku.voicemap.domain.voice.ai.AgentConnector;
 import org.ku.voicemap.domain.voice.ai.gemini.config.GeminiProperties;
 import org.ku.voicemap.domain.voice.ai.gemini.payload.BidiGenerateContentRealtimeInput;

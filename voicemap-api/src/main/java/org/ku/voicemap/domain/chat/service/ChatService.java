@@ -9,7 +9,7 @@ import org.ku.voicemap.domain.chat.dto.CreateChatResponse;
 import org.ku.voicemap.domain.chat.dto.MemberChatsResponse;
 import org.ku.voicemap.domain.chat.dto.MemberChatsResponse.MemberChatResponse;
 import org.ku.voicemap.domain.chat.entity.Chat;
-import org.ku.voicemap.domain.chat.reposiotry.ChatRepository;
+import org.ku.voicemap.domain.chat.repository.ChatRepository;
 import org.ku.voicemap.domain.script.Script;
 import org.ku.voicemap.domain.script.ScriptRepository;
 import org.springframework.stereotype.Service;
