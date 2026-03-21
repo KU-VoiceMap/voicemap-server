@@ -45,7 +45,7 @@ public class DocumentService {
             throw new IllegalArgumentException("해당 채팅이 존재하지 않습니다.");
         }
 
-        List<Script> scripts = scriptRepository.findAllByChatId(chatId);
+        List<Script> scripts = scriptRepository.findAllByChatIdOrderByCreatedAt(chatId);
         if (scripts.isEmpty()) {
             throw new IllegalArgumentException("대화 내용이 없습니다.");
         }

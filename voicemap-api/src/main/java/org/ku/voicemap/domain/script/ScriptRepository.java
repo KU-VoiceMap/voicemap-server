@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ScriptRepository extends JpaRepository<Script, Long> {
 
-    List<Script> findAllByChatId(String chatId);
+    List<Script> findAllByChatIdOrderByCreatedAt(String chatId);
 }

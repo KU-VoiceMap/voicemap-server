@@ -70,7 +70,7 @@ public class ConversationOutboundService {
         log.info("[USER]: {}", userTranscript);
         log.info("[AGENT]: {}", agentTranscript);
 
-        boolean isFirstTurn = scriptRepository.findAllByChatId(session.getChatId()).isEmpty();
+        boolean isFirstTurn = scriptRepository.findAllByChatIdOrderByCreatedAt(session.getChatId()).isEmpty();
 
         saveScript(session.getChatId(), userTranscript, agentTranscript);
         session.clearTranscript();

@@ -51,7 +51,7 @@ public class ChatService {
             throw new IllegalArgumentException("해당 채팅이 존재하지 않습니다.");
         }
 
-        List<Script> scripts = scriptRepository.findAllByChatId(chatId);
+        List<Script> scripts = scriptRepository.findAllByChatIdOrderByCreatedAt(chatId);
         return ChatDetailsResponse.from(scripts);
     }
 }
