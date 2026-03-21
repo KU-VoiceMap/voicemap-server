@@ -1,11 +1,13 @@
 package org.ku.voicemap.ai.gemini.realtime;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.ku.voicemap.ai.gemini.payload.GeminiRealtimeResponse;
+import org.ku.voicemap.ai.gemini.payload.GeminiRealtimeResponse.ServerContent;
+import org.ku.voicemap.ai.gemini.payload.GeminiRealtimeResponse.SessionResumptionUpdate;
 import org.ku.voicemap.ai.realtime.AiAgentListener;
 import org.ku.voicemap.ai.realtime.AiRole;
 import org.springframework.web.socket.BinaryMessage;
@@ -33,62 +35,54 @@ public class GeminiWebSocketHandler extends BinaryWebSocketHandler {
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) {
         String payload = StandardCharsets.UTF_8.decode(message.getPayload()).toString();
         try {
-            JsonNode root = objectMapper.readTree(payload);
+            GeminiRealtimeResponse response = objectMapper.readValue(payload, GeminiRealtimeResponse.class);
 
-            if (root.has("setupComplete")) {
+            if (response.isSetupComplete()) {
                 listener.onSessionReady(sessionId);
                 return;
             }
 
-            if (root.has("serverContent")) {
-                handleServerContent(root.get("serverContent"));
+            if (response.hasServerContent()) {
+                handleServerContent(response.serverContent());
             }
 
-            if (root.has("sessionResumptionUpdate")) {
-                handleSessionResumptionUpdate(root.get("sessionResumptionUpdate"));
+            if (response.hasSessionResumptionUpdate()) {
+                handleSessionResumptionUpdate(response.sessionResumptionUpdate());
             }
         } catch (Exception e) {
             log.error("[GeminiWebSocketHandler] Error processing message", e);
         }
     }
 
-    private void handleServerContent(JsonNode content) {
-        if (content.has("inputTranscription")) {
-            String text = content.get("inputTranscription").path("text").asText();
-            listener.onTranscript(sessionId, AiRole.USER, text);
+    private void handleServerContent(ServerContent content) {
+        if (content.hasInputTranscription()) {
+            listener.onTranscript(sessionId, AiRole.USER, content.inputTranscription().text());
         }
 
-        if (content.has("outputTranscription")) {
-            String text = content.get("outputTranscription").path("text").asText();
-            listener.onTranscript(sessionId, AiRole.AGENT, text);
+        if (content.hasOutputTranscription()) {
+            listener.onTranscript(sessionId, AiRole.AGENT, content.outputTranscription().text());
         }
 
-        if (content.has("interrupted") && content.get("interrupted").asBoolean()) {
+        if (content.isInterrupted()) {
             listener.onInterrupted(sessionId);
         }
 
-        if (content.has("modelTurn")) {
-            JsonNode parts = content.get("modelTurn").get("parts");
-            if (parts != null && parts.isArray()) {
-                for (JsonNode part : parts) {
-                    if (part.has("inlineData")) {
-                        String base64Audio = part.get("inlineData").path("data").asText();
-                        listener.onAudioOutput(sessionId, base64Audio);
-                    }
+        if (content.hasModelTurn()) {
+            for (var part : content.modelTurn().parts()) {
+                if (part.hasAudio()) {
+                    listener.onAudioOutput(sessionId, part.inlineData().data());
                 }
             }
         }
 
-        if (content.has("turnComplete") && content.get("turnComplete").asBoolean()) {
+        if (content.isTurnComplete()) {
             listener.onTurnComplete(sessionId);
         }
     }
 
-    private void handleSessionResumptionUpdate(JsonNode update) {
-        boolean resumable = update.path("resumable").asBoolean(false);
-        String newHandle = update.path("newHandle").asText(null);
-        if (resumable && newHandle != null) {
-            onResumptionHandle.accept(newHandle);
+    private void handleSessionResumptionUpdate(SessionResumptionUpdate update) {
+        if (update.canResume()) {
+            onResumptionHandle.accept(update.newHandle());
         }
     }
 }
