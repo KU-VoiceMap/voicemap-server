@@ -6,9 +6,12 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.ku.voicemap.ai.chat.AiChatClient;
+import org.ku.voicemap.ai.realtime.AiAgentListener;
+import org.ku.voicemap.ai.realtime.AiRole;
+import org.ku.voicemap.config.AiInstructionProperties;
 import org.ku.voicemap.domain.chat.entity.Chat;
 import org.ku.voicemap.domain.chat.repository.ChatRepository;
-import org.ku.voicemap.domain.chat.service.ChatTitleSummarizer;
 import org.ku.voicemap.domain.script.Script;
 import org.ku.voicemap.domain.script.ScriptRepository;
 import org.ku.voicemap.domain.voice.outbound.payload.AudioOutputPayload;
@@ -25,13 +28,43 @@ import org.springframework.web.socket.WebSocketSession;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ConversationOutboundService {
+public class ConversationOutboundService implements AiAgentListener {
 
     private final VoiceSessionRepository sessionRepository;
     private final ScriptRepository scriptRepository;
     private final ChatRepository chatRepository;
-    private final ChatTitleSummarizer chatTitleSummarizer;
+    private final AiChatClient aiChatClient;
+    private final AiInstructionProperties aiInstructionProperties;
     private final ObjectMapper objectMapper;
+
+    @Override
+    public void onSessionReady(String sessionId) {
+        sendSessionReady(sessionId);
+    }
+
+    @Override
+    public void onTranscript(String sessionId, AiRole role, String text) {
+        ConversationRole conversationRole = switch (role) {
+            case USER -> ConversationRole.USER;
+            case AGENT -> ConversationRole.AGENT;
+        };
+        sendTranscript(sessionId, conversationRole, text);
+    }
+
+    @Override
+    public void onAudioOutput(String sessionId, String base64Audio) {
+        sendAudioOutput(sessionId, base64Audio);
+    }
+
+    @Override
+    public void onInterrupted(String sessionId) {
+        sendInterrupted(sessionId);
+    }
+
+    @Override
+    public void onTurnComplete(String sessionId) {
+        sendTurnComplete(sessionId);
+    }
 
     public void sendSessionReady(String sessionId) {
         send(sessionId, ServerMessageType.SESSION_READY, new SessionReadyPayload(sessionId));
@@ -50,14 +83,6 @@ public class ConversationOutboundService {
 
     public void sendInterrupted(String sessionId) {
         send(sessionId, ServerMessageType.INTERRUPTED, Collections.emptyMap());
-    }
-
-    public void updateResumptionHandle(String sessionId, String handle) {
-        sessionRepository.findBySessionId(sessionId)
-            .ifPresent(session -> {
-                session.updateResumptionHandle(handle);
-                log.debug("[SessionResumption] Handle updated for session: {}", sessionId);
-            });
     }
 
     public void sendTurnComplete(String sessionId) {
@@ -85,7 +110,8 @@ public class ConversationOutboundService {
     private void generateAndUpdateTitle(String sessionId, String chatId, String question, String answer) {
         try {
             String content = "[사용자]: " + question + "\n[AI]: " + answer;
-            String title = chatTitleSummarizer.summarize(content);
+            String systemInstruction = aiInstructionProperties.instructions().chat();
+            String title = aiChatClient.generateTitle(systemInstruction, content).title();
 
             Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new IllegalArgumentException("Chat not found: " + chatId));

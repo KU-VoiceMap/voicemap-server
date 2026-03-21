@@ -21,6 +21,12 @@ voicemap:
     username: sa
     password:
     pool-name: voicemap-hikari-pool
+  ai:
+    instructions:
+      agent: you are kind.
+      document: you are kind.
+      chat: you are kind.
+      context-summarizer: you are kind.
 
 
 auth:
@@ -79,6 +85,12 @@ voicemap:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     pool-name: voicemap-hikari-pool
+  ai:
+    instructions:
+      agent: ${VOICEMAP_AI_INSTRUCTION_AGENT}
+      document: ${VOICEMAP_AI_INSTRUCTION_DOCUMENT}
+      chat: ${VOICEMAP_AI_INSTRUCTION_CHAT}
+      context-summarizer: ${VOICEMAP_AI_INSTRUCTION_CONTEXT_SUMMARIZER}
 
 auth:
   google:

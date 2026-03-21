@@ -87,7 +87,7 @@ public class GeminiAgentWebSocketHandler extends BinaryWebSocketHandler {
         boolean resumable = update.path("resumable").asBoolean(false);
         String newHandle = update.path("newHandle").asText(null);
         if (resumable && newHandle != null) {
-            outbound.updateResumptionHandle(sessionId, newHandle);
+            log.debug("[GeminiAgentWebSocketHandler] Resumption handle updated for session: {}", sessionId);
         }
     }
 }
