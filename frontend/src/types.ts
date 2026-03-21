@@ -4,6 +4,7 @@ export interface Chat {
 }
 
 export interface Message {
+  id: number;
   role: 'USER' | 'AGENT';
   text: string;
 }

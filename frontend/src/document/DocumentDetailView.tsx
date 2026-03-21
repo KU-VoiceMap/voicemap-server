@@ -4,9 +4,10 @@ import { formatDate } from '../utils/formatDate';
 interface DocumentDetailViewProps {
   detail: DocumentDetail | null;
   isLoading: boolean;
+  onNavigateToChat: (chatId: string) => void;
 }
 
-export default function DocumentDetailView({ detail, isLoading }: DocumentDetailViewProps) {
+export default function DocumentDetailView({ detail, isLoading, onNavigateToChat }: Readonly<DocumentDetailViewProps>) {
   if (isLoading) {
     return (
       <div className="document-detail-view">
@@ -32,9 +33,20 @@ export default function DocumentDetailView({ detail, isLoading }: DocumentDetail
       <article className="document-detail-content">
         <header className="document-detail-header">
           <h4 className="document-detail-title">{detail.title || '제목 없는 문서'}</h4>
-          <p className="document-detail-date">
-            {detail.createdAt ? `생성일 ${formatDate(detail.createdAt)}` : '생성일 정보 없음'}
-          </p>
+          <div className="document-detail-meta">
+            <p className="document-detail-date">
+              {detail.createdAt ? `생성일 ${formatDate(detail.createdAt)}` : '생성일 정보 없음'}
+            </p>
+            {detail.chatId && (
+              <button
+                type="button"
+                className="btn-link"
+                onClick={() => onNavigateToChat(detail.chatId!)}
+              >
+                원본 채팅 보기
+              </button>
+            )}
+          </div>
         </header>
 
         <section className="document-detail-section">
@@ -51,8 +63,8 @@ export default function DocumentDetailView({ detail, isLoading }: DocumentDetail
           <h5>키워드</h5>
           {detail.keywords.length > 0 ? (
             <div className="keyword-badge-row">
-              {detail.keywords.map((kw, i) => (
-                <span key={i} className="keyword-badge">{kw}</span>
+              {detail.keywords.map((kw) => (
+                <span key={kw} className="keyword-badge">{kw}</span>
               ))}
             </div>
           ) : (

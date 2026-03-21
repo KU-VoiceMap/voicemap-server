@@ -45,8 +45,8 @@ export default function DocumentList({
               <p className="document-card-summary">{doc.summary || '요약 정보가 없습니다.'}</p>
               {keywords.length > 0 && (
                 <div className="keyword-badge-row">
-                  {keywords.slice(0, 8).map((kw, i) => (
-                    <span key={i} className="keyword-badge">{kw}</span>
+                  {keywords.slice(0, 8).map((kw) => (
+                    <span key={kw} className="keyword-badge">{kw}</span>
                   ))}
                 </div>
               )}

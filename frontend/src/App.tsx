@@ -74,6 +74,7 @@ export default function App() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const knownChatIdsRef = useRef<Set<string>>(new Set());
   const liveMessageRef = useRef<{ role: 'USER' | 'AGENT' } | null>(null);
+  const messageIdRef = useRef(0);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToasts((prev) => [...prev, createToast(message, type)]);
@@ -101,8 +102,8 @@ export default function App() {
       const scripts = Array.isArray(response.json.scripts) ? response.json.scripts : [];
       const msgs: Message[] = [];
       scripts.forEach((s) => {
-        msgs.push({ role: 'USER', text: s.question ?? '' });
-        if (s.answer) msgs.push({ role: 'AGENT', text: s.answer });
+        msgs.push({ id: messageIdRef.current++, role: 'USER', text: s.question ?? '' });
+        if (s.answer) msgs.push({ id: messageIdRef.current++, role: 'AGENT', text: s.answer });
       });
       setMessages(msgs);
     } else {
@@ -281,10 +282,10 @@ export default function App() {
             const role = payload.role === 'USER' ? 'USER' as const : 'AGENT' as const;
             const last = prev.at(-1);
             if (liveMessageRef.current?.role === role && last?.role === role) {
-              return [...prev.slice(0, -1), { role, text: last.text + payload.text }];
+              return [...prev.slice(0, -1), { id: last.id, role, text: last.text + payload.text }];
             }
             liveMessageRef.current = { role };
-            return [...prev, { role, text: payload.text }];
+            return [...prev, { id: messageIdRef.current++, role, text: payload.text }];
           });
         },
         onTurnCompleted: () => void handleTurnCompleted(),
@@ -476,6 +477,11 @@ export default function App() {
             <DocumentDetailView
               detail={activeDocumentId ? documentDetails.get(activeDocumentId) ?? null : null}
               isLoading={documentDetailLoading}
+              onNavigateToChat={(chatId) => {
+                selectChat(chatId);
+                setActiveSidebarTab('chats');
+                setMainView('chat');
+              }}
             />
           )}
 
