@@ -8,16 +8,14 @@ interface AuthViewProps {
 }
 
 declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: { client_id: string; callback: (response: { credential?: string }) => void }) => void;
-          renderButton: (element: HTMLElement, config: Record<string, unknown>) => void;
-        };
+  var google: {
+    accounts: {
+      id: {
+        initialize: (config: { client_id: string; callback: (response: { credential?: string }) => void }) => void;
+        renderButton: (element: HTMLElement, config: Record<string, unknown>) => void;
       };
     };
-  }
+  } | undefined;
 }
 
 export default function AuthView({ statusMessage }: AuthViewProps) {
@@ -34,23 +32,23 @@ export default function AuthView({ statusMessage }: AuthViewProps) {
     }
 
     const tryRender = () => {
-      if (!window.google?.accounts?.id || !buttonRef.current) {
+      if (!globalThis.google?.accounts?.id || !buttonRef.current) {
         setTimeout(tryRender, 300);
         return;
       }
       if (scriptLoaded.current) return;
       scriptLoaded.current = true;
 
-      window.google.accounts.id.initialize({
+      globalThis.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: (response) => {
           if (!response.credential) return;
           setPendingGoogleIdToken(response.credential);
-          window.location.assign('/oauth/callback');
+          globalThis.location.assign('/oauth/callback');
         },
       });
 
-      window.google.accounts.id.renderButton(buttonRef.current, {
+      globalThis.google.accounts.id.renderButton(buttonRef.current, {
         theme: 'outline',
         size: 'large',
         shape: 'pill',

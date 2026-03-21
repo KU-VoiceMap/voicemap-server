@@ -65,6 +65,7 @@ export function useAuth() {
 
   const handleCallbackLogin = useCallback(async () => {
     const pendingToken = getPendingGoogleIdToken();
+    clearPendingGoogleIdToken();
     if (!pendingToken) {
       setState({
         isAuthenticated: false,
@@ -72,14 +73,13 @@ export function useAuth() {
         statusMessage: '콜백 토큰이 존재하지 않습니다. 다시 로그인해주세요.',
         memberNumber: '',
       });
-      window.history.replaceState({}, '', '/');
+      globalThis.history.replaceState({}, '', '/');
       return;
     }
 
     try {
       await loginWithGoogleToken(pendingToken);
-      clearPendingGoogleIdToken();
-      window.history.replaceState({}, '', '/');
+      globalThis.history.replaceState({}, '', '/');
       const accessToken = getAccessToken();
       setState({
         isAuthenticated: true,
@@ -123,8 +123,8 @@ export function useAuth() {
 
   useEffect(() => {
     const isCallback =
-      window.location.pathname === '/oauth/callback' ||
-      window.location.pathname === '/oauth/callback/';
+      globalThis.location.pathname === '/oauth/callback' ||
+      globalThis.location.pathname === '/oauth/callback/';
 
     if (isCallback) {
       handleCallbackLogin();

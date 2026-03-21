@@ -28,8 +28,8 @@ export class VoiceWebSocket {
   connect(accessToken: string, chatId: string | null, handler: WsMessageHandler): Promise<string> {
     this.close();
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
+const protocol = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${globalThis.location.host}/ws/chat`;
     const socket = new WebSocket(wsUrl);
     this.ws = socket;
 
