@@ -19,10 +19,12 @@ public class GeminiAgentWebSocketHandler extends BinaryWebSocketHandler {
     private final String sessionId;
     private final ObjectMapper objectMapper;
     private final ConversationOutboundService outbound;
+    private final Runnable onDisconnect;
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         log.info("[GeminiAgentWebSocketHandler] Connection closed for session: {}, status: {}", sessionId, status);
+        onDisconnect.run();
     }
 
     @Override
@@ -38,6 +40,10 @@ public class GeminiAgentWebSocketHandler extends BinaryWebSocketHandler {
 
             if (root.has("serverContent")) {
                 handleServerContent(root.get("serverContent"));
+            }
+
+            if (root.has("sessionResumptionUpdate")) {
+                handleSessionResumptionUpdate(root.get("sessionResumptionUpdate"));
             }
 
         } catch (Exception e) {
@@ -74,6 +80,14 @@ public class GeminiAgentWebSocketHandler extends BinaryWebSocketHandler {
 
         if (content.has("turnComplete") && content.get("turnComplete").asBoolean()) {
             outbound.sendTurnComplete(sessionId);
+        }
+    }
+
+    private void handleSessionResumptionUpdate(JsonNode update) {
+        boolean resumable = update.path("resumable").asBoolean(false);
+        String newHandle = update.path("newHandle").asText(null);
+        if (resumable && newHandle != null) {
+            outbound.updateResumptionHandle(sessionId, newHandle);
         }
     }
 }

@@ -32,14 +32,16 @@ public class GeminiAgentConnector implements AgentConnector {
 
     @Override
     public void connect(String sessionId) {
+        Runnable onDisconnect = () -> reconnect(sessionId);
         webSocketClient.execute(
-                new GeminiAgentWebSocketHandler(sessionId, objectMapper, outbound),
+                new GeminiAgentWebSocketHandler(sessionId, objectMapper, outbound, onDisconnect),
                 geminiProperties.urls().agentWebSocketUrl() + "?key=" + geminiProperties.apiKey()
             ).thenAccept(agentConnection ->
                 sessionRepository.findBySessionId(sessionId).ifPresent(session -> {
                     session.bindAgentConnection(agentConnection);
                     try {
-                        SetupMessage setupMessage = SetupMessage.create(geminiProperties.instructions().agent());
+                        String resumptionHandle = session.getResumptionHandle();
+                        SetupMessage setupMessage = SetupMessage.create(geminiProperties.instructions().agent(), resumptionHandle);
                         agentConnection.sendMessage(new TextMessage(objectMapper.writeValueAsString(setupMessage)));
                     } catch (IOException e) {
                         log.error("[GeminiAgentConnector] Failed to send setup message for session: {}", sessionId, e);
@@ -50,6 +52,21 @@ public class GeminiAgentConnector implements AgentConnector {
                 sessionRepository.remove(sessionId);
                 return null;
             });
+    }
+
+    private void reconnect(String sessionId) {
+        sessionRepository.findBySessionId(sessionId).ifPresent(session -> {
+            if (session.getResumptionHandle() == null) {
+                log.info("[GeminiAgentConnector] No resumption handle for session: {}, skipping reconnect", sessionId);
+                return;
+            }
+            if (!session.getClientConnection().isOpen()) {
+                log.info("[GeminiAgentConnector] Client connection closed for session: {}, skipping reconnect", sessionId);
+                return;
+            }
+            log.info("[GeminiAgentConnector] Reconnecting session: {} with resumption handle", sessionId);
+            connect(sessionId);
+        });
     }
 
     @Override

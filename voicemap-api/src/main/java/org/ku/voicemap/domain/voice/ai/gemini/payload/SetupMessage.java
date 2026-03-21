@@ -1,17 +1,24 @@
 package org.ku.voicemap.domain.voice.ai.gemini.payload;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 public record SetupMessage(Setup setup) {
 
     public static SetupMessage create(String systemInstruction) {
+        return create(systemInstruction, null);
+    }
+
+    public static SetupMessage create(String systemInstruction, String resumptionHandle) {
         return new SetupMessage(new Setup(
             "models/gemini-2.5-flash-native-audio-preview-09-2025",
             new SystemInstruction(List.of(new Part(systemInstruction))),
             new GenerationConfig(List.of("AUDIO")),
             new RealtimeInputConfig(new AutomaticActivityDetection(false, 100, 500)),
             new AudioTranscriptionConfig(),
-            new AudioTranscriptionConfig()
+            new AudioTranscriptionConfig(),
+            new ContextWindowCompressionConfig(new SlidingWindow()),
+            new SessionResumptionConfig(resumptionHandle)
         ));
     }
 
@@ -21,7 +28,9 @@ public record SetupMessage(Setup setup) {
         GenerationConfig generationConfig,
         RealtimeInputConfig realtimeInputConfig,
         AudioTranscriptionConfig inputAudioTranscription,
-        AudioTranscriptionConfig outputAudioTranscription
+        AudioTranscriptionConfig outputAudioTranscription,
+        ContextWindowCompressionConfig contextWindowCompression,
+        SessionResumptionConfig sessionResumption
     ) {}
     private record SystemInstruction(List<Part> parts) {}
     private record Part(String text) {}
@@ -29,4 +38,8 @@ public record SetupMessage(Setup setup) {
     private record RealtimeInputConfig(AutomaticActivityDetection automaticActivityDetection) {}
     private record AutomaticActivityDetection(boolean disabled, long prefixPaddingMs, long silenceDurationMs) {}
     private record AudioTranscriptionConfig() {}
+    private record ContextWindowCompressionConfig(SlidingWindow slidingWindow) {}
+    private record SlidingWindow() {}
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private record SessionResumptionConfig(String handle) {}
 }

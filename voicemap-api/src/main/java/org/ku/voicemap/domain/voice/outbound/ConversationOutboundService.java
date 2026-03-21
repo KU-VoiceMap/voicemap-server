@@ -52,6 +52,14 @@ public class ConversationOutboundService {
         send(sessionId, ServerMessageType.INTERRUPTED, Collections.emptyMap());
     }
 
+    public void updateResumptionHandle(String sessionId, String handle) {
+        sessionRepository.findBySessionId(sessionId)
+            .ifPresent(session -> {
+                session.updateResumptionHandle(handle);
+                log.debug("[SessionResumption] Handle updated for session: {}", sessionId);
+            });
+    }
+
     public void sendTurnComplete(String sessionId) {
         VoiceSession session = sessionRepository.findBySessionId(sessionId)
             .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
