@@ -32,9 +32,20 @@ jwt:
   access-token-expire-duration: 1h
   refresh-token-expire-duration: 7d
 
-ai:
+gemini:
   api-key: apikey
-  system-instruction: you are kind.
+  urls:
+    agent-web-socket-url: wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent
+    document-api-url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
+    chat-api-url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
+  models:
+    agent-model: models/gemini-2.5-flash-native-audio-preview-12-2025
+    document-model: gemini-2.5-flash
+    chat-model: gemini-2.5-flash
+  instructions:
+    agent: you are kind.
+    document: you are kind.
+    chat: you are kind.
 ---
 
 spring:
@@ -78,6 +89,17 @@ jwt:
   access-token-expire-duration: 1h
   refresh-token-expire-duration: 7d
 
-ai:
-  api-key: ${AI_API_KEY}
-  system-instruction: ${AI_SYSTEM_INSTRUCTION}
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  urls:
+    agent-web-socket-url: ${GEMINI_AGENT_WEB_SOCKET_URL}
+    document-api-url: ${GEMINI_DOCUMENT_API_URL}
+    chat-api-url: ${GEMINI_CHAT_API_URL}
+  models:
+    agent-model: ${GEMINI_AGENT_MODEL}
+    document-model: ${GEMINI_DOCUMENT_MODEL}
+    chat-model: ${GEMINI_CHAT_MODEL}
+  instructions:
+    agent: ${GEMINI_INSTRUCTION_AGENT}
+    document: ${GEMINI_INSTRUCTION_DOCUMENT}
+    chat: ${GEMINI_INSTRUCTION_CHAT}

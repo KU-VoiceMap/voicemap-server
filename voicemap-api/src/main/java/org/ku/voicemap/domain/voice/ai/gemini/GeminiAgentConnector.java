@@ -5,13 +5,12 @@ import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ku.voicemap.domain.voice.ai.AgentConnector;
-import org.ku.voicemap.domain.voice.ai.gemini.payload.AiProperties;
+import org.ku.voicemap.domain.voice.ai.gemini.config.GeminiProperties;
 import org.ku.voicemap.domain.voice.ai.gemini.payload.BidiGenerateContentRealtimeInput;
 import org.ku.voicemap.domain.voice.ai.gemini.payload.SetupMessage;
 import org.ku.voicemap.domain.voice.outbound.ConversationOutboundService;
 import org.ku.voicemap.domain.voice.session.VoiceSession;
 import org.ku.voicemap.domain.voice.session.VoiceSessionRepository;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -20,15 +19,12 @@ import org.springframework.web.socket.client.WebSocketClient;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@EnableConfigurationProperties(AiProperties.class)
 public class GeminiAgentConnector implements AgentConnector {
-
-    private static final String GEMINI_URL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
 
     private final WebSocketClient webSocketClient;
     private final VoiceSessionRepository sessionRepository;
 
-    private final AiProperties aiProperties;
+    private final GeminiProperties geminiProperties;
 
     // Handler 생성 시에만 사용한다.
     private final ObjectMapper objectMapper;
@@ -38,12 +34,12 @@ public class GeminiAgentConnector implements AgentConnector {
     public void connect(String sessionId) {
         webSocketClient.execute(
                 new GeminiAgentWebSocketHandler(sessionId, objectMapper, outbound),
-                GEMINI_URL + "?key=" + aiProperties.apiKey()
+                geminiProperties.urls().agentWebSocketUrl() + "?key=" + geminiProperties.apiKey()
             ).thenAccept(agentConnection ->
                 sessionRepository.findBySessionId(sessionId).ifPresent(session -> {
                     session.bindAgentConnection(agentConnection);
                     try {
-                        SetupMessage setupMessage = SetupMessage.create(aiProperties.systemInstruction());
+                        SetupMessage setupMessage = SetupMessage.create(geminiProperties.instructions().agent());
                         agentConnection.sendMessage(new TextMessage(objectMapper.writeValueAsString(setupMessage)));
                     } catch (IOException e) {
                         log.error("[GeminiAgentConnector] Failed to send setup message for session: {}", sessionId, e);

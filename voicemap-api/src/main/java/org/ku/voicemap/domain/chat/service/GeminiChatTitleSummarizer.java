@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.ku.voicemap.domain.voice.ai.gemini.payload.AiProperties;
+import org.ku.voicemap.domain.voice.ai.gemini.config.GeminiProperties;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -14,29 +14,15 @@ import org.springframework.web.client.RestClient;
 @Component
 public class GeminiChatTitleSummarizer implements ChatTitleSummarizer {
 
-    private static final String GEMINI_URL =
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
-
     private static final int TITLE_MAX_LENGTH = 30;
 
-    private static final String SYSTEM_INSTRUCTION = """
-        당신은 대화 내용을 바탕으로 짧고 직관적인 대화 제목을 생성하는 AI입니다.
-
-        규칙:
-        1. 제목은 한국어로 작성하세요.
-        2. 제목은 최대 30자 이내로 간결하게 작성하세요.
-        3. 대화의 핵심 주제를 담아야 합니다.
-        4. 불필요한 조사나 서술어 없이, 명사구 중심으로 작성하세요.
-        5. 따옴표, 마침표 등 특수문자를 포함하지 마세요.
-        """;
-
     private final RestClient restClient;
-    private final AiProperties aiProperties;
+    private final GeminiProperties geminiProperties;
     private final ObjectMapper objectMapper;
 
-    public GeminiChatTitleSummarizer(AiProperties aiProperties, ObjectMapper objectMapper) {
+    public GeminiChatTitleSummarizer(GeminiProperties geminiProperties, ObjectMapper objectMapper) {
         this.restClient = RestClient.create();
-        this.aiProperties = aiProperties;
+        this.geminiProperties = geminiProperties;
         this.objectMapper = objectMapper;
     }
 
@@ -45,7 +31,7 @@ public class GeminiChatTitleSummarizer implements ChatTitleSummarizer {
         try {
             Map<String, Object> requestBody = buildRequest(content);
             String responseJson = restClient.post()
-                .uri(GEMINI_URL + "?key=" + aiProperties.apiKey())
+                .uri(geminiProperties.urls().chatApiUrl() + "?key=" + geminiProperties.apiKey())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(requestBody)
                 .retrieve()
@@ -63,7 +49,7 @@ public class GeminiChatTitleSummarizer implements ChatTitleSummarizer {
 
         return Map.of(
             "systemInstruction", Map.of(
-                "parts", List.of(Map.of("text", SYSTEM_INSTRUCTION))
+                "parts", List.of(Map.of("text", geminiProperties.instructions().chat()))
             ),
             "contents", List.of(
                 Map.of("parts", List.of(Map.of("text", prompt)))

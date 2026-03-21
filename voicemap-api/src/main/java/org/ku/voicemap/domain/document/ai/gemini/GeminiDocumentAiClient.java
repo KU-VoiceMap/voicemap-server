@@ -7,7 +7,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.ku.voicemap.domain.document.ai.DocumentAiClient;
 import org.ku.voicemap.domain.document.ai.DocumentAiResult;
-import org.ku.voicemap.domain.voice.ai.gemini.payload.AiProperties;
+import org.ku.voicemap.domain.voice.ai.gemini.config.GeminiProperties;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -16,15 +16,13 @@ import org.springframework.web.client.RestClient;
 @Component
 public class GeminiDocumentAiClient implements DocumentAiClient {
 
-    private static final String GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
-
     private final RestClient restClient;
-    private final AiProperties aiProperties;
+    private final GeminiProperties geminiProperties;
     private final ObjectMapper objectMapper;
 
-    public GeminiDocumentAiClient(AiProperties aiProperties, ObjectMapper objectMapper) {
+    public GeminiDocumentAiClient(GeminiProperties geminiProperties, ObjectMapper objectMapper) {
         this.restClient = RestClient.create();
-        this.aiProperties = aiProperties;
+        this.geminiProperties = geminiProperties;
         this.objectMapper = objectMapper;
     }
 
@@ -33,7 +31,7 @@ public class GeminiDocumentAiClient implements DocumentAiClient {
         Map<String, Object> requestBody = buildRequest(conversationText, existingKeywords);
 
         String responseJson = restClient.post()
-                .uri(GEMINI_URL + "?key=" + aiProperties.apiKey())
+                .uri(geminiProperties.urls().documentApiUrl() + "?key=" + geminiProperties.apiKey())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(requestBody)
                 .retrieve()
@@ -47,7 +45,7 @@ public class GeminiDocumentAiClient implements DocumentAiClient {
 
         return Map.of(
                 "systemInstruction", Map.of(
-                        "parts", List.of(Map.of("text", SYSTEM_INSTRUCTION))
+                        "parts", List.of(Map.of("text", geminiProperties.instructions().document()))
                 ),
                 "contents", List.of(
                         Map.of("parts", List.of(Map.of("text", prompt)))
@@ -111,15 +109,5 @@ public class GeminiDocumentAiClient implements DocumentAiClient {
         }
     }
 
-    private static final String SYSTEM_INSTRUCTION = """
-            당신은 대화 내용을 분석하여 구조화된 문서를 작성하는 AI입니다.
-            
-            규칙:
-            1. 문서 제목(title)은 핵심 주제를 간결하게 나타내세요.
-            2. 요약(summary)은 대화의 핵심 내용을 2~3문장으로 간결하게 요약하세요.
-            3. 본문(content)은 대화의 핵심 내용을 자연스러운 문서로 상세하게 정리하세요.
-            4. 키워드(keywords)는 5~10개를 추출하세요.
-            5. 기존 키워드 목록이 주어지면, 같은 개념은 기존 키워드를 재사용하세요.
-            6. 키워드는 소문자로 통일하세요.
-            """;
+
 }
