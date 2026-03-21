@@ -14,8 +14,13 @@ export default function RecorderFooter({
   isCreatingDocument,
   onToggleRecording,
   onCreateDocument,
-}: RecorderFooterProps) {
-  const recordLabel = isConnecting ? '연결 중...' : isRecording ? '녹음 중지' : '녹음 시작';
+}: Readonly<RecorderFooterProps>) {
+  let recordLabel = '녹음 시작';
+  if (isConnecting) {
+    recordLabel = '연결 중...';
+  } else if (isRecording) {
+    recordLabel = '녹음 중지';
+  }
 
   return (
     <footer className="recorder-footer">

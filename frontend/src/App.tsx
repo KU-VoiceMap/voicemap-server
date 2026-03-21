@@ -7,8 +7,9 @@ import RecorderFooter from './chat/RecorderFooter';
 import DocumentList from './document/DocumentList';
 import DocumentDetailView from './document/DocumentDetailView';
 import GraphView from './graph/GraphView';
-import ToastContainer, { createToast } from './components/Toast';
-import type { ToastItem } from './components/Toast';
+import ToastContainer from './components/Toast';
+import { createToast } from './components/toastUtils';
+import type { ToastItem } from './components/toastUtils';
 import { useVoiceSession } from './chat/useVoiceSession';
 import { fetchJson } from './api/client';
 import { getAccessToken } from './auth/tokenStorage';
@@ -114,7 +115,7 @@ export default function App() {
     const response = await fetchJson<{ documents: DocumentSummary[] }>('/documents');
     if (response.status !== 200) throw new Error(`문서 목록 조회 실패 (${response.status})`);
     const docs = (response.json?.documents ?? [])
-      .filter((d: DocumentSummary) => d && d.documentId)
+      .filter((d: DocumentSummary) => d?.documentId)
       .map((d: DocumentSummary) => ({
         documentId: String(d.documentId),
         chatId: d.chatId ? String(d.chatId) : null,
@@ -131,8 +132,8 @@ export default function App() {
     if (response.status !== 200) throw new Error(`문서 상세 조회 실패 (${response.status})`);
     const json = response.json ?? {};
     const detail: DocumentDetail = {
-      documentId: String(json.documentId || documentId),
-      chatId: json.chatId ? String(json.chatId) : null,
+      documentId: typeof json.documentId === 'string' ? json.documentId : documentId,
+      chatId: typeof json.chatId === 'string' ? json.chatId : null,
       title: typeof json.title === 'string' ? json.title : '',
       summary: typeof json.summary === 'string' ? json.summary : '',
       content: typeof json.content === 'string' ? json.content : '',
@@ -221,6 +222,34 @@ export default function App() {
     setEmptyText('녹음 시작 버튼을 누르면 새 음성 세션이 시작됩니다.');
   }, []);
 
+  const handleTurnCompleted = useCallback(async () => {
+    setAiStatus('idle');
+    liveMessageRef.current = null;
+    try {
+      const chatList = await loadChatList();
+      if (activeChatId) {
+        await loadChatDetails(activeChatId);
+      } else {
+        const newChat = chatList.find((c) => !knownChatIdsRef.current.has(c.chatId));
+        if (newChat) {
+          setActiveChatId(newChat.chatId);
+          await loadChatDetails(newChat.chatId);
+        }
+      }
+    } catch (error) {
+      console.error('[app] turn completed handler failed', error);
+    }
+  }, [activeChatId, loadChatList, loadChatDetails]);
+
+  const handleConnectionLost = useCallback(async () => {
+    setIsRecording(false);
+    setSessionId(null);
+    setConnectionState('연결 안됨');
+    setMicStatus('idle');
+    setAiStatus('idle');
+    await voiceSession.stop();
+  }, [voiceSession]);
+
   const handleToggleRecording = useCallback(async () => {
     if (isConnecting) return;
 
@@ -250,45 +279,19 @@ export default function App() {
           setAiStatus(payload.role === 'AGENT' ? 'speaking' : 'idle');
           setMessages((prev) => {
             const role = payload.role === 'USER' ? 'USER' as const : 'AGENT' as const;
-            if (liveMessageRef.current?.role === role && prev.length > 0) {
-              const last = prev[prev.length - 1];
-              if (last.role === role) {
-                return [...prev.slice(0, -1), { role, text: last.text + payload.text }];
-              }
+            const last = prev.at(-1);
+            if (liveMessageRef.current?.role === role && last?.role === role) {
+              return [...prev.slice(0, -1), { role, text: last.text + payload.text }];
             }
             liveMessageRef.current = { role };
             return [...prev, { role, text: payload.text }];
           });
         },
-        onTurnCompleted: async () => {
-          setAiStatus('idle');
-          liveMessageRef.current = null;
-          try {
-            const chatList = await loadChatList();
-            if (!activeChatId) {
-              const newChat = chatList.find((c) => !knownChatIdsRef.current.has(c.chatId));
-              if (newChat) {
-                setActiveChatId(newChat.chatId);
-                await loadChatDetails(newChat.chatId);
-              }
-            } else {
-              await loadChatDetails(activeChatId);
-            }
-          } catch (error) {
-            console.error('[app] turn completed handler failed', error);
-          }
-        },
+        onTurnCompleted: () => void handleTurnCompleted(),
         onInterrupted: () => {
           setAiStatus('interrupted');
         },
-        onConnectionLost: async () => {
-          setIsRecording(false);
-          setSessionId(null);
-          setConnectionState('연결 안됨');
-          setMicStatus('idle');
-          setAiStatus('idle');
-          await voiceSession.stop();
-        },
+        onConnectionLost: () => void handleConnectionLost(),
       });
 
       setSessionId(sid);
@@ -302,7 +305,7 @@ export default function App() {
     } finally {
       setIsConnecting(false);
     }
-  }, [isConnecting, isRecording, voiceSession, chats, activeChatId, loadChatList, loadChatDetails]);
+  }, [isConnecting, isRecording, voiceSession, chats, activeChatId, handleTurnCompleted, handleConnectionLost]);
 
   const handleCreateDocument = useCallback(async () => {
     if (!activeChatId || isCreatingDocument) return;
@@ -317,7 +320,7 @@ export default function App() {
       }
       const title = response.json?.title || '새 문서';
       showToast(`문서가 생성되었습니다: ${title}`, 'success');
-      try { await loadDocuments(); } catch { }
+      try { await loadDocuments(); } catch { /* 문서 목록 갱신 실패는 무시 — 생성 자체는 성공 */ }
     } catch {
       showToast('문서 생성에 실패했습니다. 다시 시도해주세요.', 'error');
     } finally {

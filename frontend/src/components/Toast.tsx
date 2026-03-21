@@ -1,23 +1,12 @@
 import { useEffect, useState } from 'react';
-
-export interface ToastItem {
-  id: number;
-  message: string;
-  type: 'success' | 'error';
-}
-
-let nextId = 0;
-
-export function createToast(message: string, type: 'success' | 'error' = 'success'): ToastItem {
-  return { id: nextId++, message, type };
-}
+import type { ToastItem } from './toastUtils';
 
 interface ToastContainerProps {
   toasts: ToastItem[];
   onRemove: (id: number) => void;
 }
 
-export default function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
+export default function ToastContainer({ toasts, onRemove }: Readonly<ToastContainerProps>) {
   return (
     <div className="toast-container" aria-live="polite" aria-atomic="true">
       {toasts.map((toast) => (
@@ -27,7 +16,7 @@ export default function ToastContainer({ toasts, onRemove }: ToastContainerProps
   );
 }
 
-function ToastElement({ toast, onRemove }: { toast: ToastItem; onRemove: (id: number) => void }) {
+function ToastElement({ toast, onRemove }: Readonly<{ toast: ToastItem; onRemove: (id: number) => void }>) {
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
@@ -38,12 +27,22 @@ function ToastElement({ toast, onRemove }: { toast: ToastItem; onRemove: (id: nu
     return () => clearTimeout(timer);
   }, [toast.id, onRemove]);
 
+  if (toast.type === 'error') {
+    return (
+      <div
+        className={`toast toast-error${leaving ? ' is-leaving' : ''}`}
+        role="alert"
+      >
+        <span>{toast.message}</span>
+      </div>
+    );
+  }
+
   return (
-    <div
+    <output
       className={`toast toast-${toast.type}${leaving ? ' is-leaving' : ''}`}
-      role={toast.type === 'error' ? 'alert' : 'status'}
     >
       <span>{toast.message}</span>
-    </div>
+    </output>
   );
 }

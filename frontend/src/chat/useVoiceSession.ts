@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { VoiceWebSocket } from '../api/websocket';
 import type { WsMessageHandler, WsTranscriptPayload, WsAudioOutputPayload } from '../api/websocket';
 
@@ -14,8 +14,8 @@ function floatToPcm16(float32: Float32Array): Int16Array {
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   let binary = '';
   const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  for (const byte of bytes) {
+    binary += String.fromCodePoint(byte);
   }
   return btoa(binary);
 }
@@ -24,7 +24,7 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
+    bytes[i] = binary.codePointAt(i)!;
   }
   return bytes.buffer;
 }
@@ -106,18 +106,7 @@ export function useVoiceSession() {
   const isPlayingRef = useRef(false);
   const nextStartTimeRef = useRef(0);
   const callbacksRef = useRef<VoiceSessionCallbacks | null>(null);
-
-  const stopPlayback = useCallback(async () => {
-    audioQueueRef.current = [];
-    audioSourcesRef.current.forEach((s) => { try { s.stop(); } catch { } });
-    audioSourcesRef.current = [];
-    isPlayingRef.current = false;
-    nextStartTimeRef.current = 0;
-    if (playbackContextRef.current) {
-      await playbackContextRef.current.close();
-      playbackContextRef.current = null;
-    }
-  }, []);
+  const playAudioQueueRef = useRef<() => Promise<void>>(async () => {});
 
   const playAudioQueue = useCallback(async () => {
     if (audioQueueRef.current.length === 0) {
@@ -128,9 +117,7 @@ export function useVoiceSession() {
 
     isPlayingRef.current = true;
 
-    if (!playbackContextRef.current) {
-      playbackContextRef.current = new AudioContext();
-    }
+    playbackContextRef.current ??= new AudioContext();
     if (playbackContextRef.current.state === 'suspended') {
       await playbackContextRef.current.resume();
     }
@@ -150,7 +137,7 @@ export function useVoiceSession() {
 
     const source = ctx.createBufferSource();
     const gain = ctx.createGain();
-    gain.gain.value = 1.0;
+    gain.gain.value = 1;
     source.buffer = audioBuffer;
     source.connect(gain);
     gain.connect(ctx.destination);
@@ -166,7 +153,7 @@ export function useVoiceSession() {
     source.onended = () => {
       audioSourcesRef.current = audioSourcesRef.current.filter((s) => s !== source);
       if (audioQueueRef.current.length > 0) {
-        setTimeout(() => { playAudioQueue().catch(console.error); }, 0);
+        setTimeout(() => { playAudioQueueRef.current().catch(console.error); }, 0);
         return;
       }
       if (audioQueueRef.current.length === 0 && audioSourcesRef.current.length === 0) {
@@ -176,7 +163,21 @@ export function useVoiceSession() {
     };
 
     if (audioQueueRef.current.length > 0) {
-      setTimeout(() => { playAudioQueue().catch(console.error); }, 0);
+      setTimeout(() => { playAudioQueueRef.current().catch(console.error); }, 0);
+    }
+  }, []);
+
+  useEffect(() => { playAudioQueueRef.current = playAudioQueue; }, [playAudioQueue]);
+
+  const stopPlayback = useCallback(async () => {
+    audioQueueRef.current = [];
+    audioSourcesRef.current.forEach((s) => { try { s.stop(); } catch { /* already stopped */ } });
+    audioSourcesRef.current = [];
+    isPlayingRef.current = false;
+    nextStartTimeRef.current = 0;
+    if (playbackContextRef.current) {
+      await playbackContextRef.current.close();
+      playbackContextRef.current = null;
     }
   }, []);
 
@@ -190,7 +191,7 @@ export function useVoiceSession() {
 
   const handleInterrupted = useCallback(() => {
     audioQueueRef.current = [];
-    audioSourcesRef.current.forEach((s) => { try { s.stop(); } catch { } });
+    audioSourcesRef.current.forEach((s) => { try { s.stop(); } catch { /* already stopped */ } });
     audioSourcesRef.current = [];
     isPlayingRef.current = false;
     nextStartTimeRef.current = 0;
@@ -199,7 +200,7 @@ export function useVoiceSession() {
 
   const stopMicrophone = useCallback(async () => {
     if (workletNodeRef.current) {
-      try { workletNodeRef.current.disconnect(); } catch { }
+      try { workletNodeRef.current.disconnect(); } catch { /* already disconnected */ }
       workletNodeRef.current = null;
     }
     if (mediaStreamRef.current) {
