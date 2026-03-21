@@ -68,11 +68,8 @@ public class GeminiWebSocketHandler extends BinaryWebSocketHandler {
         }
 
         if (content.hasModelTurn()) {
-            for (var part : content.modelTurn().parts()) {
-                if (part.hasAudio()) {
-                    listener.onAudioOutput(sessionId, part.inlineData().data());
-                }
-            }
+            content.audioData()
+                .forEach(data -> listener.onAudioOutput(sessionId, data));
         }
 
         if (content.isTurnComplete()) {

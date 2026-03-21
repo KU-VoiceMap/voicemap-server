@@ -53,13 +53,31 @@ public record GeminiRealtimeResponse(
         public boolean hasModelTurn() {
             return modelTurn != null;
         }
+
+        public List<String> audioData() {
+            if (modelTurn == null) {
+                return List.of();
+            }
+            return modelTurn.audioData();
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Transcription(String text) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record ModelTurn(List<Part> parts) {}
+    public record ModelTurn(List<Part> parts) {
+
+        public List<String> audioData() {
+            if (parts == null) {
+                return List.of();
+            }
+            return parts.stream()
+                .filter(Part::hasAudio)
+                .map(part -> part.inlineData().data())
+                .toList();
+        }
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Part(InlineData inlineData) {
