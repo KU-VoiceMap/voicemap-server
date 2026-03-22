@@ -1,17 +1,16 @@
 package org.ku.voicemap.ai.gemini.realtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URI;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.ku.voicemap.ai.gemini.config.GeminiProperties;
+import org.ku.voicemap.ai.gemini.realtime.GeminiSessionRegistry.SessionState;
 import org.ku.voicemap.ai.realtime.AiAgentListener;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.client.WebSocketClient;
-
-import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,6 +22,7 @@ class GeminiRealtimeClientTest {
 
     private WebSocketClient webSocketClient;
     private GeminiProperties geminiProperties;
+    private GeminiSessionRegistry sessionRegistry;
     private GeminiRealtimeClient client;
     private AiAgentListener listener;
 
@@ -34,7 +34,8 @@ class GeminiRealtimeClientTest {
             new GeminiProperties.Urls("wss://gemini.test/ws", "https://doc.test", "https://chat.test"),
             new GeminiProperties.Models("models/test-agent", "doc-model", "chat-model")
         );
-        client = new GeminiRealtimeClient(webSocketClient, geminiProperties, new ObjectMapper());
+        sessionRegistry = new GeminiSessionRegistry();
+        client = new GeminiRealtimeClient(webSocketClient, geminiProperties, new ObjectMapper(), sessionRegistry);
         listener = mock(AiAgentListener.class);
     }
 
@@ -63,10 +64,8 @@ class GeminiRealtimeClientTest {
     @Test
     void disconnect_closesConnectionAndRemovesSession() throws Exception {
         WebSocketSession mockSession = mock(WebSocketSession.class);
-        ConcurrentHashMap<String, GeminiRealtimeClient.SessionState> sessions = new ConcurrentHashMap<>();
-        sessions.put("session-1", new GeminiRealtimeClient.SessionState(mockSession, "inst", listener, null));
+        sessionRegistry.save("session-1", new SessionState(mockSession, "inst", listener, null));
 
-        client = new GeminiRealtimeClient(webSocketClient, geminiProperties, new ObjectMapper(), sessions);
         client.disconnect("session-1");
 
         verify(mockSession).close();
@@ -74,20 +73,16 @@ class GeminiRealtimeClientTest {
 
     @Test
     void disconnect_withNullConnection_doesNotThrow() {
-        ConcurrentHashMap<String, GeminiRealtimeClient.SessionState> sessions = new ConcurrentHashMap<>();
-        sessions.put("session-1", new GeminiRealtimeClient.SessionState(null, "inst", listener, null));
+        sessionRegistry.save("session-1", new SessionState(null, "inst", listener, null));
 
-        client = new GeminiRealtimeClient(webSocketClient, geminiProperties, new ObjectMapper(), sessions);
         client.disconnect("session-1");
     }
 
     @Test
     void sendAudio_sendsMessageOnConnection() throws Exception {
         WebSocketSession mockSession = mock(WebSocketSession.class);
-        ConcurrentHashMap<String, GeminiRealtimeClient.SessionState> sessions = new ConcurrentHashMap<>();
-        sessions.put("session-1", new GeminiRealtimeClient.SessionState(mockSession, "inst", listener, null));
+        sessionRegistry.save("session-1", new SessionState(mockSession, "inst", listener, null));
 
-        client = new GeminiRealtimeClient(webSocketClient, geminiProperties, new ObjectMapper(), sessions);
         client.sendAudio("session-1", "base64data");
 
         verify(mockSession).sendMessage(any());
@@ -95,7 +90,7 @@ class GeminiRealtimeClientTest {
 
     @Test
     void sessionState_withConnection_preservesOtherFields() {
-        var state = new GeminiRealtimeClient.SessionState(null, "inst", listener, "handle");
+        var state = new SessionState(null, "inst", listener, "handle");
         WebSocketSession mockSession = mock(WebSocketSession.class);
         var updated = state.withConnection(mockSession);
 
@@ -108,7 +103,7 @@ class GeminiRealtimeClientTest {
     @Test
     void sessionState_withResumptionHandle_preservesOtherFields() {
         WebSocketSession mockSession = mock(WebSocketSession.class);
-        var state = new GeminiRealtimeClient.SessionState(mockSession, "inst", listener, null);
+        var state = new SessionState(mockSession, "inst", listener, null);
         var updated = state.withResumptionHandle("new-handle");
 
         assertThat(updated.connection()).isEqualTo(mockSession);
