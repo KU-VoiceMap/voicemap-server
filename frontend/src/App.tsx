@@ -12,6 +12,7 @@ import ToastContainer from './components/Toast';
 import { createToast } from './components/toastUtils';
 import type { ToastItem } from './components/toastUtils';
 import { useVoiceSession } from './chat/useVoiceSession';
+import type { WsTitleUpdatedPayload } from './api/websocket';
 import { fetchJson } from './api/client';
 import { getAccessToken } from './auth/tokenStorage';
 import type {
@@ -242,6 +243,12 @@ export default function App() {
     setEmptyText('녹음 시작 버튼을 누르면 새 음성 세션이 시작됩니다.');
   }, []);
 
+  const handleTitleUpdated = useCallback((payload: WsTitleUpdatedPayload) => {
+    setChats((prev) => prev.map((chat) => (
+      chat.chatId === payload.chatId ? { ...chat, title: payload.title } : chat
+    )));
+  }, []);
+
   const handleTurnCompleted = useCallback(async () => {
     setAiStatus('idle');
     liveMessageRef.current = null;
@@ -307,11 +314,7 @@ export default function App() {
             return [...prev, { id: messageIdRef.current++, role, text: payload.text }];
           });
         },
-        onTitleUpdated: (payload) => {
-          setChats((prev) =>
-            prev.map((c) => (c.chatId === payload.chatId ? { ...c, title: payload.title } : c)),
-          );
-        },
+        onTitleUpdated: handleTitleUpdated,
         onTurnCompleted: () => void handleTurnCompleted(),
         onInterrupted: () => {
           setAiStatus('interrupted');
@@ -330,7 +333,7 @@ export default function App() {
     } finally {
       setIsConnecting(false);
     }
-  }, [isConnecting, isRecording, voiceSession, chats, activeChatId, handleTurnCompleted, handleConnectionLost]);
+  }, [isConnecting, isRecording, voiceSession, chats, activeChatId, handleTurnCompleted, handleConnectionLost, handleTitleUpdated]);
 
   const handleCreateDocument = useCallback(async () => {
     if (!activeChatId || isCreatingDocument) return;
@@ -352,6 +355,13 @@ export default function App() {
       setIsCreatingDocument(false);
     }
   }, [activeChatId, isCreatingDocument, showToast, loadDocuments]);
+
+  const handleSendText = useCallback((text: string) => {
+    if (!text.trim()) return;
+    voiceSession.sendText(text);
+    setMessages((prev) => [...prev, { id: messageIdRef.current++, role: 'USER', text }]);
+    liveMessageRef.current = null;
+  }, [voiceSession]);
 
   const handleLogout = useCallback(async () => {
     await voiceSession.stop();
@@ -483,8 +493,10 @@ export default function App() {
                 isConnecting={isConnecting}
                 activeChatId={activeChatId}
                 isCreatingDocument={isCreatingDocument}
+                isSessionActive={isRecording}
                 onToggleRecording={handleToggleRecording}
                 onCreateDocument={handleCreateDocument}
+                onSendText={handleSendText}
               />
             </>
           )}
@@ -546,5 +558,3 @@ export default function App() {
     </main>
   );
 }
-
-

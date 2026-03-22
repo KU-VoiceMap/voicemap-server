@@ -54,16 +54,24 @@ public class GeminiRealtimeClient implements AiRealtimeClient {
 
     @Override
     public void sendAudio(String sessionId, String base64Audio) {
+        sendRealtimeInput(sessionId, BidiGenerateContentRealtimeInput.forAudio(base64Audio));
+    }
+
+    @Override
+    public void sendText(String sessionId, String text) {
+        sendRealtimeInput(sessionId, BidiGenerateContentRealtimeInput.forText(text));
+    }
+
+    private void sendRealtimeInput(String sessionId, BidiGenerateContentRealtimeInput input) {
         SessionState state = sessions.get(sessionId);
         if (state == null || state.connection() == null) {
             throw new IllegalArgumentException("No active session: " + sessionId);
         }
         try {
-            BidiGenerateContentRealtimeInput input = new BidiGenerateContentRealtimeInput(base64Audio);
             String payload = objectMapper.writeValueAsString(input);
             state.connection().sendMessage(new TextMessage(payload));
         } catch (IOException e) {
-            log.error("[GeminiRealtimeClient] Failed to send audio for session: {}", sessionId, e);
+            log.error("[GeminiRealtimeClient] Failed to send message for session: {}", sessionId, e);
         }
     }
 

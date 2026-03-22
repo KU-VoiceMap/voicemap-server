@@ -144,6 +144,10 @@ const protocol = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:';
     }
   }
 
+  sendTextInput(text: string): void {
+    this.send({ type: 'TEXT_INPUT', payload: { text } });
+  }
+
   close(): void {
     if (!this.ws) return;
     const socket = this.ws;

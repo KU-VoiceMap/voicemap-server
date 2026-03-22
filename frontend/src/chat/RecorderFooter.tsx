@@ -1,10 +1,16 @@
+import { useState, type ComponentProps } from 'react';
+
+type RecorderFooterSubmitEvent = Parameters<NonNullable<ComponentProps<'form'>['onSubmit']>>[0];
+
 interface RecorderFooterProps {
   isRecording: boolean;
   isConnecting: boolean;
   activeChatId: string | null;
   isCreatingDocument: boolean;
+  isSessionActive: boolean;
   onToggleRecording: () => void;
   onCreateDocument: () => void;
+  onSendText: (text: string) => void;
 }
 
 export default function RecorderFooter({
@@ -12,9 +18,13 @@ export default function RecorderFooter({
   isConnecting,
   activeChatId,
   isCreatingDocument,
+  isSessionActive,
   onToggleRecording,
   onCreateDocument,
+  onSendText,
 }: Readonly<RecorderFooterProps>) {
+  const [textValue, setTextValue] = useState('');
+
   let recordLabel = '녹음 시작';
   if (isConnecting) {
     recordLabel = '연결 중...';
@@ -22,8 +32,34 @@ export default function RecorderFooter({
     recordLabel = '녹음 중지';
   }
 
+  const handleSubmit = (event: RecorderFooterSubmitEvent) => {
+    event.preventDefault();
+    const text = textValue.trim();
+    if (!text) return;
+    onSendText(text);
+    setTextValue('');
+  };
+
   return (
     <footer className="recorder-footer">
+      {isSessionActive && (
+        <form className="text-input-form" onSubmit={handleSubmit}>
+          <input
+            type="text"
+            className="text-input-field"
+            value={textValue}
+            onChange={(e) => setTextValue(e.target.value)}
+            placeholder="메시지를 입력하세요..."
+          />
+          <button
+            type="submit"
+            className="btn btn-primary text-send-btn"
+            disabled={!textValue.trim() || !isSessionActive}
+          >
+            전송
+          </button>
+        </form>
+      )}
       <div className="recorder-actions">
         <button
           className="btn btn-primary"
@@ -43,7 +79,7 @@ export default function RecorderFooter({
           </button>
         )}
       </div>
-      <p className="footer-hint">텍스트 입력 없이 녹음 버튼으로만 WebSocket 음성 세션을 진행합니다.</p>
+      <p className="footer-hint">음성 또는 텍스트로 대화할 수 있습니다.</p>
     </footer>
   );
 }

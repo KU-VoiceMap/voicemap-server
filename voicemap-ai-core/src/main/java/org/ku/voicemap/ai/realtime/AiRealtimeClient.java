@@ -6,5 +6,7 @@ public interface AiRealtimeClient {
 
     void sendAudio(String sessionId, String base64Audio);
 
+    void sendText(String sessionId, String text);
+
     void disconnect(String sessionId);
 }

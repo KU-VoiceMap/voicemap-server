@@ -1,19 +1,24 @@
 package org.ku.voicemap.ai.gemini.payload;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 public record BidiGenerateContentRealtimeInput(
     RealtimeInput realtimeInput
 ) {
 
-    public BidiGenerateContentRealtimeInput(String base64Audio) {
-        this(new RealtimeInput(base64Audio));
+    public static BidiGenerateContentRealtimeInput forAudio(String base64Audio) {
+        return new BidiGenerateContentRealtimeInput(new RealtimeInput(new GeminiBlob(base64Audio, "audio/pcm"), null));
     }
 
+    public static BidiGenerateContentRealtimeInput forText(String text) {
+        return new BidiGenerateContentRealtimeInput(new RealtimeInput(null, text));
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public record RealtimeInput(
-        GeminiBlob audio
+        GeminiBlob audio,
+        String text
     ) {
-        public RealtimeInput(String base64AudioData) {
-            this(new GeminiBlob(base64AudioData, "audio/pcm"));
-        }
     }
 
     public record GeminiBlob(

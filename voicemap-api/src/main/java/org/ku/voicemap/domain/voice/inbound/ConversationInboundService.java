@@ -19,6 +19,7 @@ import org.ku.voicemap.domain.script.Script;
 import org.ku.voicemap.domain.script.ScriptRepository;
 import org.ku.voicemap.domain.voice.inbound.payload.AudioInputPayload;
 import org.ku.voicemap.domain.voice.inbound.payload.SessionInitPayload;
+import org.ku.voicemap.domain.voice.inbound.payload.TextInputPayload;
 import org.ku.voicemap.domain.voice.outbound.ConversationOutboundService;
 import org.ku.voicemap.domain.voice.session.VoiceSession;
 import org.ku.voicemap.domain.voice.session.VoiceSessionRepository;
@@ -62,6 +63,12 @@ public class ConversationInboundService {
         VoiceSession session = sessionRepository.findByClientConnection(clientConnection)
             .orElseThrow(() -> new IllegalStateException("Session not initialized"));
         aiRealtimeClient.sendAudio(session.getSessionId(), payload.data());
+    }
+
+    public void handleTextInput(WebSocketSession clientConnection, TextInputPayload payload) {
+        VoiceSession session = sessionRepository.findByClientConnection(clientConnection)
+            .orElseThrow(() -> new IllegalStateException("Session not initialized"));
+        aiRealtimeClient.sendText(session.getSessionId(), payload.text());
     }
 
     public void disconnectSession(WebSocketSession clientConnection) {

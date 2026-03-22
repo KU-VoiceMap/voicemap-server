@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.ku.voicemap.domain.voice.inbound.payload.AudioInputPayload;
 import org.ku.voicemap.domain.voice.inbound.payload.SessionInitPayload;
+import org.ku.voicemap.domain.voice.inbound.payload.TextInputPayload;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -42,6 +43,10 @@ public class ClientWebSocketHandler extends TextWebSocketHandler {
             case AUDIO_INPUT -> {
                 AudioInputPayload payload = objectMapper.treeToValue(messagePayload, AudioInputPayload.class);
                 inbound.handleAudioInput(session, payload);
+            }
+            case TEXT_INPUT -> {
+                TextInputPayload payload = objectMapper.treeToValue(messagePayload, TextInputPayload.class);
+                inbound.handleTextInput(session, payload);
             }
         }
     }

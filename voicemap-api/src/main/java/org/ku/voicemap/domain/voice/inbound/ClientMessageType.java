@@ -5,6 +5,7 @@ import java.util.Arrays;
 public enum ClientMessageType {
     SESSION_INIT,
     AUDIO_INPUT,
+    TEXT_INPUT,
     ;
 
     public static ClientMessageType from(String type) {

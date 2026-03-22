@@ -316,5 +316,9 @@ export function useVoiceSession() {
     wsRef.current.close();
   }, [stopMicrophone, stopPlayback]);
 
-  return { start, stop };
+  const sendText = useCallback((text: string) => {
+    wsRef.current.sendTextInput(text);
+  }, []);
+
+  return { start, stop, sendText };
 }
