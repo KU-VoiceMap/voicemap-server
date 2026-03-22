@@ -21,6 +21,7 @@ import org.ku.voicemap.domain.voice.inbound.payload.AudioInputPayload;
 import org.ku.voicemap.domain.voice.inbound.payload.SessionInitPayload;
 import org.ku.voicemap.domain.voice.inbound.payload.TextInputPayload;
 import org.ku.voicemap.domain.voice.outbound.ConversationOutboundService;
+import org.ku.voicemap.domain.voice.outbound.ConversationRole;
 import org.ku.voicemap.domain.voice.session.VoiceSession;
 import org.ku.voicemap.domain.voice.session.VoiceSessionRepository;
 import org.springframework.stereotype.Service;
@@ -68,6 +69,7 @@ public class ConversationInboundService {
     public void handleTextInput(WebSocketSession clientConnection, TextInputPayload payload) {
         VoiceSession session = sessionRepository.findByClientConnection(clientConnection)
             .orElseThrow(() -> new IllegalStateException("Session not initialized"));
+        session.appendTranscript(ConversationRole.USER, payload.text());
         aiRealtimeClient.sendText(session.getSessionId(), payload.text());
     }
 
