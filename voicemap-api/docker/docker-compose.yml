@@ -1,0 +1,10 @@
+services:
+  voicemap-api:
+    build:
+      context: ../../
+      dockerfile: voicemap-api/docker/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./application-prod.yml:/app/config/application-prod.yml:ro
+    restart: unless-stopped

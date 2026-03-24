@@ -1,0 +1,20 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'voicemap-api/**'
+      - 'voicemap-ai-core/**'
+      - 'voicemap-ai-gemini/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build and deploy
+        run: docker compose -f voicemap-api/docker/docker-compose.yml up -d --build --force-recreate
