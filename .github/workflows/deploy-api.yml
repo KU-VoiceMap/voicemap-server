@@ -1,14 +1,7 @@
 name: Deploy API
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'voicemap-api/**'
-      - 'voicemap-ai-core/**'
-      - 'voicemap-ai-gemini/**'
-      - 'build.gradle'
-      - 'settings.gradle'
+  workflow_dispatch:
 
 jobs:
   deploy:
