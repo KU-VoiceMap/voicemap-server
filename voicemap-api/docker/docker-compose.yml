@@ -6,5 +6,5 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./application-prod.yml:/app/config/application-prod.yml:ro
+      - /home/opc/voicemap/application-prod.yml:/app/config/application-prod.yml:ro
     restart: unless-stopped
