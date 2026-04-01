@@ -1,10 +1,20 @@
 services:
+  nginx:
+    build:
+      context: ../../
+      dockerfile: voicemap-api/docker/nginx/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - voicemap-api
+    restart: unless-stopped
+
   voicemap-api:
     build:
       context: ../../
       dockerfile: voicemap-api/docker/Dockerfile
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     volumes:
       - /home/opc/voicemap/application-prod.yml:/app/config/application-prod.yml:ro
     restart: unless-stopped
