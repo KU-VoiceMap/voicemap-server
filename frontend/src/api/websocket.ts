@@ -27,6 +27,8 @@ export type WsMessageHandler = {
   onError: () => void;
 };
 
+import { WS_BASE_URL } from './config';
+
 export class VoiceWebSocket {
   private ws: WebSocket | null = null;
   private manualClose = false;
@@ -34,8 +36,13 @@ export class VoiceWebSocket {
   connect(accessToken: string, chatId: string | null, handler: WsMessageHandler): Promise<string> {
     this.close();
 
-const protocol = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${globalThis.location.host}/ws/chat`;
+    let wsUrl: string;
+    if (WS_BASE_URL) {
+      wsUrl = `${WS_BASE_URL}/ws/chat`;
+    } else {
+      const protocol = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsUrl = `${protocol}//${globalThis.location.host}/ws/chat`;
+    }
     const socket = new WebSocket(wsUrl);
     this.ws = socket;
 

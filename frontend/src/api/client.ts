@@ -1,4 +1,5 @@
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '../auth/tokenStorage';
+import { API_BASE_URL } from './config';
 
 export interface ApiResponse<T = unknown> {
   status: number;
@@ -10,7 +11,7 @@ async function rotateAccessToken(): Promise<boolean> {
   if (!refreshToken) return false;
 
   try {
-    const response = await fetch('/auth/access', {
+    const response = await fetch(`${API_BASE_URL}/auth/access`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -53,7 +54,7 @@ async function request(
     headers['Authorization'] = `Bearer ${getAccessToken()}`;
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
     headers,
     body: body !== null ? JSON.stringify(body) : undefined,
