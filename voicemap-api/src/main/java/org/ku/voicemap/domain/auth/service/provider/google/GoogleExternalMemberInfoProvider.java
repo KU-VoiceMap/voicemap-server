@@ -26,7 +26,7 @@ public class GoogleExternalMemberInfoProvider implements ExternalMemberInfoProvi
                 throw new IllegalArgumentException("Invalid Google ID token.");
             }
             Payload payload = idToken.getPayload();
-            return new ExternalMember(AuthProvider.GOOGLE, payload.getEmail(), payload.getSubject());
+            return new ExternalMember(AuthProvider.GOOGLE, payload.getSubject(), payload.getEmail());
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to verify Google ID token.", e);
         }
